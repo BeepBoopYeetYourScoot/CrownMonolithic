@@ -13,6 +13,7 @@ def city_generator(players_amount, brokers_amount):
 		'ET',
 	]
 	cities_for_iter = cities[:brokers_amount]
+	random.shuffle(cities_for_iter)
 	while players_amount > 0:
 		yield cities_for_iter.pop(random.randint(0, len(cities_for_iter) - 1))
 		players_amount -= 1
@@ -65,12 +66,11 @@ def name_generator():
 
 def generate_role_instances(session_instance):
 	players = session_instance.player.all()
-	# city = city_generator(players.count(), session_instance.number_of_brokers)
-	cities = ['IV', 'WS', 'TT', 'AD', 'NF', 'ET']
+	city = city_generator(players.count(), session_instance.number_of_brokers)
 	name_gen = name_generator()
 	for player in players:
 		# FIXME це пиздец
-		player.city = random.choice(cities[:session_instance.number_of_brokers])
+		player.city = next(city)
 		player.role_name = next(name_gen)
 		if player.role == 'producer':
 			player.balance = session_instance.producer_starting_balance
