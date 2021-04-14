@@ -20,14 +20,58 @@ def city_generator(players_amount, brokers_amount):
 			cities_for_iter = cities[:brokers_amount]
 
 
+def name_generator():
+	names = [
+		"Арнольд",
+		"Антэйн",
+		"Артур",
+		"Бернард",
+		"Беррак",
+		"Брэйди",
+		"Вильям",
+		"Генрих",
+		"Геральд",
+		"Густав",
+		"Двэйн",
+		"Донован",
+		"Жак",
+		"Карл",
+		"Кевин",
+		"Конан",
+		"Летард",
+		"Леонард",
+		"Людвиг",
+		"Малоун",
+		"Модест",
+		"Мерфи",
+		"Отто",
+		"Оскар",
+		"Риган",
+		"Ричард",
+		"Роберт",
+		"Ролан",
+		"Уиллиам",
+		"Фалько",
+		"Фицрой",
+		"Харбин",
+		"Эдгар",
+		"Эдмунд",
+		"Эраст",
+		"Эдвард",
+	]
+	for name in random.shuffle(names):
+		yield name
+
 def generate_role_instances(session_instance):
 	players = session_instance.player.all()
 	# city = city_generator(players.count(), session_instance.number_of_brokers)
 	cities = ['IV', 'WS', 'TT', 'AD', 'NF', 'ET']
+	name_gen = name_generator()
 
 	for player in players:
 		# FIXME це пиздец
 		player.city = random.choice(cities[:session_instance.number_of_brokers])
+		print(next(name_gen))
 		if player.role == 'producer':
 			player.balance = session_instance.producer_starting_balance
 			player.save()
