@@ -59,7 +59,8 @@ def name_generator():
 		"Эраст",
 		"Эдвард",
 	]
-	for name in random.shuffle(names):
+	random.shuffle(names)
+	for name in names:
 		yield name
 
 def generate_role_instances(session_instance):
@@ -67,11 +68,11 @@ def generate_role_instances(session_instance):
 	# city = city_generator(players.count(), session_instance.number_of_brokers)
 	cities = ['IV', 'WS', 'TT', 'AD', 'NF', 'ET']
 	name_gen = name_generator()
-
+	print(name_gen, next(name_gen))
 	for player in players:
 		# FIXME це пиздец
 		player.city = random.choice(cities[:session_instance.number_of_brokers])
-		print(next(name_gen))
+		# print(next(name_gen))
 		if player.role == 'producer':
 			player.balance = session_instance.producer_starting_balance
 			player.save()
