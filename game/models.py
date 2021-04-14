@@ -66,6 +66,8 @@ class PlayerModel(PlayerBaseModel):
 	nickname = models.CharField(max_length=100, verbose_name='Никнейм')
 	role = models.CharField(max_length=20, choices=ROLES, verbose_name='Игровая роль',
 							default='unassigned', editable=True)
+	role_name = models.CharField(max_length=20, verbose_name='Игровое имя', default='unassigned',
+					   editable=True)
 	position = models.PositiveSmallIntegerField(verbose_name='Место', default=0,
 												editable=False)
 	ended_turn = models.BooleanField(default=False)
