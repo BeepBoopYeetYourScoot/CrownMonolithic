@@ -82,6 +82,7 @@ class PlayerSerializer(serializers.ModelSerializer):
 			'session',
 			'nickname',
 			'role',
+			'role_name',
 			'city',
 			'balance',
 			'ended_turn',
