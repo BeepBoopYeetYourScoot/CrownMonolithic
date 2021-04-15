@@ -5,7 +5,7 @@ from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
-import json
+from game.serializers import ProducerBalanceDetailSerializer, BrokerBalanceDetailSerializer
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -47,10 +47,13 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 	db_producer_model_instance.billets_stored = producer_class_instance.billets_stored
 	player.status = producer_class_instance.status
 
-	balance_detail_instance, _ = BalanceDetail.objects.update_or_create(player=player)
-	balance_detail_instance.data = json.dumps(producer_class_instance.balance_detail)
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	detail_serializer = ProducerBalanceDetailSerializer(
+		balance_detail_instance, data=producer_class_instance.balance_detail)
+	if not detail_serializer.is_valid():
+		print('Smth happened with detail serializer, 54')
 
-	balance_detail_instance.save()
+	detail_serializer.save()
 	player.save()
 	db_producer_model_instance.save()
 	return
@@ -66,9 +69,12 @@ def save_broker(broker_class_instance, db_broker_model_instance) -> None:
 	player.status = broker_class_instance.status
 
 	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
-	balance_detail_instance.data = json.dumps(broker_class_instance.balance_detail)
+	detail_serializer = BrokerBalanceDetailSerializer(
+		balance_detail_instance, data=broker_class_instance.balance_detail)
+	if not detail_serializer.is_valid():
+		print('Smth happened with detail serializer, 74')
 
-	balance_detail_instance.save()
+	detail_serializer.save()
 	player.save()
 	return
 
