@@ -108,7 +108,7 @@ class SessionAdmin(admin.ModelAdmin):
 	session_link.short_description = 'Сессия'
 
 	def get_token(self, obj):
-		return mark_safe(f'<span>{obj.token.key}</span>');
+		return mark_safe(f'<span>{obj.token.key}</span>')
 
 	get_token.short_description = 'Токен'
 
