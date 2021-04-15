@@ -8,7 +8,6 @@ from .services.normal.data_access.count_session import count_session
 
 @admin.register(PlayerModel)
 class PlayerAdmin(admin.ModelAdmin):
-<<<<<<< HEAD
 	toket = admin
 	list_display = (
 		"nickname",
