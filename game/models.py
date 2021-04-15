@@ -1,3 +1,5 @@
+import random
+
 from django.db import models
 from game.services.transporting_cost import get_transporting_cost
 from authorization.models import PlayerBaseModel
@@ -67,7 +69,7 @@ class PlayerModel(PlayerBaseModel):
 	role = models.CharField(max_length=20, choices=ROLES, verbose_name='Игровая роль',
 							default='unassigned', editable=True)
 	role_name = models.CharField(max_length=20, verbose_name='Игровое имя', default='unassigned',
-					   editable=True)
+								 editable=True)
 	position = models.PositiveSmallIntegerField(verbose_name='Место', default=0,
 												editable=False)
 	ended_turn = models.BooleanField(default=False)
@@ -75,7 +77,6 @@ class PlayerModel(PlayerBaseModel):
 	balance = models.IntegerField(default=0)
 	is_bankrupt = models.BooleanField(default=False)
 	status = models.CharField(max_length=20, default='OK', verbose_name='Статус банкротства', editable=False)
-
 
 	class Meta:
 		verbose_name = 'Игрок'
@@ -102,7 +103,16 @@ class ProducerModel(models.Model):
 
 
 class BrokerModel(models.Model):
+
+	@staticmethod
+	def generate_code():
+		"""
+		Генерирует шестизначный код маклера
+		"""
+		return random.randint(111111, 999999)
+
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='broker')
+	code = models.PositiveSmallIntegerField(default=generate_code)
 
 	class Meta:
 		verbose_name = 'Маклер'
@@ -113,6 +123,13 @@ class BrokerModel(models.Model):
 			return f'Маклер {self.player.nickname}'
 		else:
 			super().__str__()
+
+	def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+		"""
+		Генерирует новый код при пересчёте
+		"""
+		self.code = self.generate_code()
+		super().save()
 
 
 class TransactionModel(models.Model):
