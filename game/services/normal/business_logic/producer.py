@@ -9,11 +9,14 @@ class ProducerNormal(AbstractProducer):
     def __init__(self, balance):
         self.id = 0
         self.balance = balance
+        self.end_turn_balance = 0
         self.billets_produced = 0
         self.billets_stored = 0
+        self.billets_cost = 30
         self.transactions = []
         self.is_bankrupt = False
         self.status = 'OK'
+        self.balance_detail = None
 
     def count_fixed_costs(self) -> float:
         """
@@ -37,15 +40,15 @@ class ProducerNormal(AbstractProducer):
         Считает переменные затраты в зависимости от числа производимых заготовок
         """
         if self.billets_produced <= 10:
-            return 110 * self.billets_produced
+            return (self.billets_cost + 80) * self.billets_produced
         elif self.billets_produced <= 20:
-            return 100 * self.billets_produced
+            return (self.billets_cost + 70) * self.billets_produced
         elif self.billets_produced <= 30:
-            return 85 * self.billets_produced
+            return (self.billets_cost + 55) * self.billets_produced
         elif self.billets_produced <= 50:
-            return 70 * self.billets_produced
+            return (self.billets_cost + 40) * self.billets_produced
         elif self.billets_produced <= 100:
-            return 60 * self.billets_produced
+            return (self.billets_cost + 30) * self.billets_produced
 
     def count_storage_costs(self) -> int:
         """
@@ -110,16 +113,23 @@ class ProducerNormal(AbstractProducer):
         self.billets_produced = billet_amount
         return
 
-    def turn_balance_detail(self) -> dict:
+    def count_turn_balance_detail(self) -> None:
         """
-        Показывает детализацию баланса производителя за предыдущий ход
+        Записывает детализацию баланса производителя за предыдущий ход
         """
-        return {
+        self.balance_detail =  {
+            'start_turn_balance': self.balance,
+
             'fixed_costs': self.count_fixed_costs(),
-            'operational_costs': self.count_variable_costs(),
-            'negotiation_costs': self.count_negotiation_costs(),
-            'transporting_costs': self.count_logistics_costs(),
-            'storage_costs': self.count_storage_costs(),
-            'proceeds': self.count_proceeds()
+            'variable_costs': self.count_variable_costs(),
+            'raw-stuff_costs': self.billets_produced * self.billets_cost,
+            'fine': 0, # ?
+            'storage': self.count_storage_costs(),
+            'logistics': self.count_logistics_costs(),
+
+            'sales_income': self.count_proceeds(),
+
+            'end_turn_balance': self.end_turn_balance,
         }
+        return
 

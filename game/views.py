@@ -180,6 +180,34 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		cancel_end_turn(request.player)
 		return Response(status=status.HTTP_200_OK)
 
+	@action(methods=['get'], permission_classes=[IsPlayer], detail=False,
+			url_path='balance_detail')
+	def balance_detail(self, request):
+		producer_mock = {
+			'start_turn_balance': 100,
+			'end_turn_balance' : 200,
+			'sales_income': 200,
+			'fixed_costs': 10,
+			'variable_costs': 10,
+			'raw-stuff_costs': 20,
+			'fine': 50,
+			'storage': 10,
+			'logistics': 20
+		}
+
+		broker_mock = {
+			'start_turn_balance': 100,
+			'end_turn_balance': 200,
+			'purchase_blanks': 200,
+			'logistics': 1500,
+			'blanks': 100,
+			'fine': 100,
+			'crown': 10000,
+		}
+		mock = producer_mock if request.player.role == 'producer' else broker_mock
+
+		return Response(mock, status=status.HTTP_200_OK)
+
 
 class ProducerViewSet(ModelViewSet):
 	queryset = ProducerModel.objects.all()

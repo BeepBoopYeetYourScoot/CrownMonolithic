@@ -150,3 +150,8 @@ class TransactionModel(models.Model):
 				self.broker.player.city,
 			)
 		super().save(*args, **kwargs)
+
+
+class BalanceDetail(models.Model):
+	player = models.ForeignKey(PlayerModel, on_delete=models.CASCADE, related_name='detail')
+	data = models.CharField(max_length=200)
