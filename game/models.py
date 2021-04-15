@@ -154,4 +154,4 @@ class TransactionModel(models.Model):
 
 class BalanceDetail(models.Model):
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='detail')
-	data = models.CharField(max_length=200)
+	data = models.CharField(max_length=300, default='')

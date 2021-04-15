@@ -128,7 +128,7 @@ class ProducerNormal(AbstractProducer):
 
             'sales_income': self.count_proceeds(),
 
-            'end_turn_balance': self.end_turn_balance,
+            'end_turn_balance': 0
         }
         return
 

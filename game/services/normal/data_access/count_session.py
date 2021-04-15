@@ -49,10 +49,9 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 
 	balance_detail_instance, _ = BalanceDetail.objects.update_or_create(player=player)
 	balance_detail_instance.data = json.dumps(producer_class_instance.balance_detail)
-	balance_detail_instance.save()
 
+	balance_detail_instance.save()
 	player.save()
-	print(player.detail, player.detail.data)
 	db_producer_model_instance.save()
 	return
 
@@ -65,6 +64,11 @@ def save_broker(broker_class_instance, db_broker_model_instance) -> None:
 	player.balance = broker_class_instance.balance
 	player.is_bankrupt = broker_class_instance.is_bankrupt
 	player.status = broker_class_instance.status
+
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	balance_detail_instance.data = json.dumps(broker_class_instance.balance_detail)
+
+	balance_detail_instance.save()
 	player.save()
 	return
 
@@ -178,7 +182,7 @@ def count_session(session) -> None:
 		for transaction in transactions:
 			if transaction['broker'] == broker.id:
 				broker.make_deal(transaction)
-		# подсчет детализации
+		broker.count_turn_balance_detail(crown_balance=crown_balance)
 		brokers.append(broker)
 
 	crown_balance_updated = count_turn(producers, brokers, transactions, crown_balance)
@@ -192,6 +196,7 @@ def count_session(session) -> None:
 	for broker in brokers:
 		for db_broker in db_brokers:
 			if db_broker.id == broker.id:
+				broker.set_end_turn_balance()
 				save_broker(broker, db_broker)
 
 	session_instance.crown_balance = crown_balance_updated
