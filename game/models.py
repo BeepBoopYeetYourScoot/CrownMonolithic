@@ -115,7 +115,7 @@ def generate_code():
 
 class BrokerModel(models.Model):
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='broker')
-	code = models.PositiveSmallIntegerField(default=generate_code)
+	code = models.PositiveSmallIntegerField()
 
 	class Meta:
 		verbose_name = 'Маклер'
@@ -170,3 +170,19 @@ class TransactionModel(models.Model):
 				self.broker.player.city,
 			)
 		super().save(*args, **kwargs)
+
+# FIXME: Нужно убрать логически повторяющиеся поля
+class BalanceDetail(models.Model):
+	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='detail')
+	start_turn_balance = models.IntegerField(default=0)
+	end_turn_balance = models.IntegerField(default=0)
+	sales_income = models.IntegerField(default=0)
+	fixed_costs = models.IntegerField(default=0)
+	variable_costs = models.IntegerField(default=0)
+	raw_stuff_costs = models.IntegerField(default=0)
+	fine = models.IntegerField(default=0)
+	storage = models.IntegerField(default=0)
+	logistics = models.IntegerField(default=0)
+	purchase_blanks = models.IntegerField(default=0)
+	blanks = models.IntegerField(default=0)
+	crown = models.IntegerField(default=0)

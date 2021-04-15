@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel
+from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel, BalanceDetail
 
 
 class LobbySerializer(serializers.ModelSerializer):
@@ -106,8 +106,11 @@ class PlayerSerializer(serializers.ModelSerializer):
 		if player_instance.role == 'unassigned':
 			return 'unassigned'
 
-		model = roles[player_instance.role]['model'].objects.get(player=player_instance.id)
-		return roles[player_instance.role]['serializer'](model).data
+		try:
+			model = roles[player_instance.role]['model'].objects.get(player=player_instance.id)
+			return roles[player_instance.role]['serializer'](model).data
+		except roles[player_instance.role]['model'].DoesNotExist:
+			return 'not created'
 
 
 class ProducerSerializer(serializers.ModelSerializer):
@@ -214,3 +217,33 @@ class FullProducerInfoSerializer(serializers.ModelSerializer):
 		).data
 		# fields('billets_produced', 'billets_stored')
 		return stash
+
+
+class BrokerBalanceDetailSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = BalanceDetail
+		fields = [
+			'start_turn_balance',
+			'end_turn_balance',
+			'purchase_blanks',
+			'logistics',
+			'blanks',
+			'fine',
+			'crown',
+		]
+
+
+class ProducerBalanceDetailSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = BalanceDetail
+		fields = [
+			'start_turn_balance',
+			'end_turn_balance' ,
+			'sales_income',
+			'fixed_costs',
+			'variable_costs',
+			'raw_stuff_costs',
+			'fine',
+			'storage',
+			'logistics',
+		]

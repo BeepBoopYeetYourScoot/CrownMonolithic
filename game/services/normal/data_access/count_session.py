@@ -1,10 +1,11 @@
-from game.models import PlayerModel, TransactionModel
+from game.models import PlayerModel, TransactionModel, BalanceDetail
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
+from game.serializers import ProducerBalanceDetailSerializer, BrokerBalanceDetailSerializer
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -45,6 +46,14 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 	db_producer_model_instance.billets_produced = producer_class_instance.billets_produced
 	db_producer_model_instance.billets_stored = producer_class_instance.billets_stored
 	player.status = producer_class_instance.status
+
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	detail_serializer = ProducerBalanceDetailSerializer(
+		balance_detail_instance, data=producer_class_instance.balance_detail)
+	if not detail_serializer.is_valid():
+		print('Smth happened with detail serializer, 54')
+
+	detail_serializer.save()
 	player.save()
 	db_producer_model_instance.save()
 	return
@@ -58,6 +67,14 @@ def save_broker(broker_class_instance, db_broker_model_instance) -> None:
 	player.balance = broker_class_instance.balance
 	player.is_bankrupt = broker_class_instance.is_bankrupt
 	player.status = broker_class_instance.status
+
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	detail_serializer = BrokerBalanceDetailSerializer(
+		balance_detail_instance, data=broker_class_instance.balance_detail)
+	if not detail_serializer.is_valid():
+		print('Smth happened with detail serializer, 74')
+
+	detail_serializer.save()
 	player.save()
 	return
 
@@ -173,6 +190,7 @@ def count_session(session) -> None:
 		for transaction in transactions:
 			if transaction['producer'] == producer.id:
 				producer.make_deal(transaction)
+		producer.count_turn_balance_detail()
 		producers.append(producer)
 
 	for db_broker in db_brokers:
@@ -180,6 +198,7 @@ def count_session(session) -> None:
 		for transaction in transactions:
 			if transaction['broker'] == broker.id:
 				broker.make_deal(transaction)
+		broker.count_turn_balance_detail(crown_balance=crown_balance)
 		brokers.append(broker)
 
 	crown_balance_updated = count_turn(producers, brokers, transactions, crown_balance)
@@ -187,11 +206,13 @@ def count_session(session) -> None:
 	for producer in producers:
 		for db_producer in db_producers:
 			if db_producer.id == producer.id:
+				producer.set_end_turn_balance()
 				save_producer(producer, db_producer)
 
 	for broker in brokers:
 		for db_broker in db_brokers:
 			if db_broker.id == broker.id:
+				broker.set_end_turn_balance()
 				save_broker(broker, db_broker)
 
 	session_instance.crown_balance = crown_balance_updated

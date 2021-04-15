@@ -195,6 +195,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		cancel_end_turn(request.player)
 		return Response(status=status.HTTP_200_OK)
 
+	@action(methods=['get'], permission_classes=[IsPlayer], detail=False)
+	def balance_detail(self, request):
+		if not request.player.session.status == 'started':
+			return Response({'detail': 'Session is not started or finished!'}, status=status.HTTP_400_BAD_REQUEST)
+		if request.player.session.current_turn == 1:
+			return Response({'detail': 'There is no detail on first turn!'}, status=status.HTTP_400_BAD_REQUEST)
+		serializer = serializers.ProducerBalanceDetailSerializer if request.player.role == 'producer'\
+			else serializers.BrokerBalanceDetailSerializer
+		return Response(serializer(request.player.detail).data, status=status.HTTP_200_OK)
+
 
 class ProducerViewSet(ModelViewSet):
 	queryset = ProducerModel.objects.all()
@@ -355,8 +365,37 @@ class BrokerViewSet(ModelViewSet):
 		pass
 
 
-class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin,
-						 mixins.ListModelMixin):
+
+class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
+						 mixins.UpdateModelMixin, mixins.ListModelMixin):
 	queryset = TransactionModel.objects.all()
 	serializer_class = serializers.TransactionSerializer
-	permission_classes = [IsInSession]
+	permission_classes = [IsPlayer]
+
+	@action(methods=['get'], detail=False)
+	def current_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+
+	@action(methods=['get'], detail=False)
+	def previous_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn - 1
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
