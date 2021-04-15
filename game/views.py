@@ -341,8 +341,37 @@ class BrokerViewSet(ModelViewSet):
 		pass
 
 
-class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin,
-						 mixins.ListModelMixin):
+
+class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
+						 mixins.UpdateModelMixin, mixins.ListModelMixin):
 	queryset = TransactionModel.objects.all()
 	serializer_class = serializers.TransactionSerializer
-	permission_classes = [IsInSession]
+	permission_classes = [IsPlayer]
+
+	@action(methods=['get'], detail=False)
+	def current_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+
+	@action(methods=['get'], detail=False)
+	def previous_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn - 1
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
