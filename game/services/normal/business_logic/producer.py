@@ -123,3 +123,9 @@ class ProducerNormal(AbstractProducer):
             'proceeds': self.count_proceeds()
         }
 
+"""
++ Создание сделок по ключу маклера
++ Результаты игры
+Роутинг для таймера
+Админка
+"""

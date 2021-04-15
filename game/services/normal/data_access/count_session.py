@@ -73,32 +73,42 @@ def start_session(session):
 	if 12 <= number_of_players <= 14:
 		if not session_instance.number_of_brokers:
 			session_instance.number_of_brokers = 3
-		session_instance.broker_starting_balance = 8000
-		session_instance.producer_starting_balance = 4000
+		if not session_instance.broker_starting_balance:
+			session_instance.broker_starting_balance = 8000
+		if not session_instance.producer_starting_balance:
+			session_instance.producer_starting_balance = 4000
 		session_instance.save()
 	elif 15 <= number_of_players <= 20:
 		if not session_instance.number_of_brokers:
 			session_instance.number_of_brokers = 4
-		session_instance.broker_starting_balance = 12000
-		session_instance.producer_starting_balance = 6000
+		if not session_instance.number_of_brokers:
+			session_instance.broker_starting_balance = 12000
+		if not session_instance.number_of_brokers:
+			session_instance.producer_starting_balance = 6000
 		session_instance.save()
 	elif 21 <= number_of_players <= 25:
 		if not session_instance.number_of_brokers:
 			session_instance.number_of_brokers = 5
-		session_instance.broker_starting_balance = 12000
-		session_instance.producer_starting_balance = 6000
+		if not session_instance.number_of_brokers:
+			session_instance.broker_starting_balance = 12000
+		if not session_instance.number_of_brokers:
+			session_instance.producer_starting_balance = 6000
 		session_instance.save()
 	elif 26 <= number_of_players <= 30:
 		if not session_instance.number_of_brokers:
 			session_instance.number_of_brokers = 6
-		session_instance.broker_starting_balance = 12000
-		session_instance.producer_starting_balance = 6000
+		if not session_instance.number_of_brokers:
+			session_instance.broker_starting_balance = 12000
+		if not session_instance.number_of_brokers:
+			session_instance.producer_starting_balance = 6000
 		session_instance.save()
 	elif 31 <= number_of_players <= 35:
 		if not session_instance.number_of_brokers:
 			session_instance.number_of_brokers = 7
-		session_instance.broker_starting_balance = 12000
-		session_instance.producer_starting_balance = 6000
+		if not session_instance.number_of_brokers:
+			session_instance.broker_starting_balance = 12000
+		if not session_instance.number_of_brokers:
+			session_instance.producer_starting_balance = 6000
 		session_instance.save()
 
 	distribute_roles(session_instance)

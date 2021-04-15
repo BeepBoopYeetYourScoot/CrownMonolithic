@@ -2,21 +2,14 @@ from game.services.producer import AbstractProducer
 
 
 class ProducerHard(AbstractProducer):
-    # FIXME Фиксить нужно вообще всё
-
-    available_materials = {
-        'spruce': False,
-        'oak': False,
-        'redwood': False
-    }
 
     def __init__(self, balance):
         self.balance = balance
         self.billets_produced = (0, 0, 0)
         self.billets_stored = {
-            'spruce': [],
-            'oak': [],
-            'redwood': []
+            'spruce': (0, 0, 0),
+            'oak': (0, 0, 0),
+            'redwood': (0, 0, 0)
         }
         self.machinery = {
             'chinese': [],
