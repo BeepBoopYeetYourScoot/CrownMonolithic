@@ -38,6 +38,7 @@ def count_turn(producer_list: list, broker_list: list, transaction_list: list, c
     for producer in producer_list:
         if producer.is_bankrupt:
             continue
+
         variable_costs_summarized = producer.count_variable_costs() + producer.count_negotiation_costs() \
                                     + producer.count_logistics_costs()
         producer.balance -= variable_costs_summarized

@@ -13,6 +13,7 @@ class BrokerNormal(AbstractBroker):
         self.transactions = []
         self.is_bankrupt = False
         self.status = 'OK'
+        self.balance_detail = None
 
     fixed_costs = 1000
 
@@ -42,14 +43,26 @@ class BrokerNormal(AbstractBroker):
         """Считает выручку от продажи заготовок"""
         return self.shipment * market_price
 
-    def turn_balance_detail(self) -> dict:
+    def count_turn_balance_detail(self, crown_balance=0) -> None:
         """
-        Показывает детализацию баланса за ход
+        Записывает детализацию баланса за ход
         """
-        return {
-            'purchace_costs': self.count_purchase_costs(),
-            'proceeds': self.count_proceeds()
+        self.balance_detail = {
+            'start_turn_balance': self.balance,
+
+            'purchase_blanks': self.count_purchase_costs(),
+            'logistics': 1500 if self.shipment > 0 else 0,
+            'blanks': self.shipment,
+            'fine': 0,
+            'crown': crown_balance,
+
+            'end_turn_balance': 0,
         }
+        return
+
+    def set_end_turn_balance(self) -> None:
+        self.balance_detail['end_turn_balance'] = self.balance
+        return
 
 
 transaction_example = {
