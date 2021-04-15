@@ -106,8 +106,11 @@ class PlayerSerializer(serializers.ModelSerializer):
 		if player_instance.role == 'unassigned':
 			return 'unassigned'
 
-		model = roles[player_instance.role]['model'].objects.get(player=player_instance.id)
-		return roles[player_instance.role]['serializer'](model).data
+		try:
+			model = roles[player_instance.role]['model'].objects.get(player=player_instance.id)
+			return roles[player_instance.role]['serializer'](model).data
+		except roles[player_instance.role]['model'].DoesNotExist:
+			return 'not created'
 
 
 class ProducerSerializer(serializers.ModelSerializer):

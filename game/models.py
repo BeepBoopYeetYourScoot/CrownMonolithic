@@ -112,7 +112,7 @@ class BrokerModel(models.Model):
 		return random.randint(111111, 999999)
 
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='broker')
-	code = models.PositiveSmallIntegerField(default=generate_code)
+	code = models.PositiveSmallIntegerField()
 
 	class Meta:
 		verbose_name = 'Маклер'
