@@ -9,7 +9,6 @@ class ProducerNormal(AbstractProducer):
     def __init__(self, balance):
         self.id = 0
         self.balance = balance
-        self.end_turn_balance = 0
         self.billets_produced = 0
         self.billets_stored = 0
         self.billets_cost = 30
@@ -122,7 +121,7 @@ class ProducerNormal(AbstractProducer):
 
             'fixed_costs': self.count_fixed_costs(),
             'variable_costs': self.count_variable_costs(),
-            'raw-stuff_costs': self.billets_produced * self.billets_cost,
+            'raw_stuff_costs': self.billets_produced * self.billets_cost,
             'fine': 0, # ?
             'storage': self.count_storage_costs(),
             'logistics': self.count_logistics_costs(),
@@ -131,5 +130,12 @@ class ProducerNormal(AbstractProducer):
 
             'end_turn_balance': self.end_turn_balance,
         }
+        return
+
+    def set_end_turn_balance(self) -> None:
+        """
+        Записывает в детализацию баланс на конец хода
+        """
+        self.balance_detail['end_turn_balance'] = self.balance
         return
 

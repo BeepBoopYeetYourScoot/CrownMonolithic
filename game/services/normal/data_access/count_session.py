@@ -1,10 +1,11 @@
-from game.models import PlayerModel, TransactionModel
+from game.models import PlayerModel, TransactionModel, BalanceDetail
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
+import json
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -45,7 +46,13 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 	db_producer_model_instance.billets_produced = producer_class_instance.billets_produced
 	db_producer_model_instance.billets_stored = producer_class_instance.billets_stored
 	player.status = producer_class_instance.status
+
+	balance_detail_instance, _ = BalanceDetail.objects.update_or_create(player=player)
+	balance_detail_instance.data = json.dumps(producer_class_instance.balance_detail)
+	balance_detail_instance.save()
+
 	player.save()
+	print(player.detail, player.detail.data)
 	db_producer_model_instance.save()
 	return
 
@@ -163,6 +170,7 @@ def count_session(session) -> None:
 		for transaction in transactions:
 			if transaction['producer'] == producer.id:
 				producer.make_deal(transaction)
+		producer.count_turn_balance_detail()
 		producers.append(producer)
 
 	for db_broker in db_brokers:
@@ -170,6 +178,7 @@ def count_session(session) -> None:
 		for transaction in transactions:
 			if transaction['broker'] == broker.id:
 				broker.make_deal(transaction)
+		# подсчет детализации
 		brokers.append(broker)
 
 	crown_balance_updated = count_turn(producers, brokers, transactions, crown_balance)
@@ -177,6 +186,7 @@ def count_session(session) -> None:
 	for producer in producers:
 		for db_producer in db_producers:
 			if db_producer.id == producer.id:
+				producer.set_end_turn_balance()
 				save_producer(producer, db_producer)
 
 	for broker in brokers:

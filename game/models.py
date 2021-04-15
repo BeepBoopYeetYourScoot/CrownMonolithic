@@ -153,5 +153,5 @@ class TransactionModel(models.Model):
 
 
 class BalanceDetail(models.Model):
-	player = models.ForeignKey(PlayerModel, on_delete=models.CASCADE, related_name='detail')
+	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='detail')
 	data = models.CharField(max_length=200)

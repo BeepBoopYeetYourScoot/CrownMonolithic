@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel
+from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel, BalanceDetail
 from django.utils.safestring import mark_safe
 
 
@@ -32,3 +32,4 @@ admin.site.register(SessionModel)
 admin.site.register(ProducerModel)
 admin.site.register(BrokerModel)
 admin.site.register(TransactionModel)
+admin.site.register(BalanceDetail)
