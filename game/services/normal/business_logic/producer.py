@@ -139,3 +139,9 @@ class ProducerNormal(AbstractProducer):
         self.balance_detail['end_turn_balance'] = self.balance
         return
 
+"""
++ Создание сделок по ключу маклера
++ Результаты игры
+Роутинг для таймера
+Админка
+"""

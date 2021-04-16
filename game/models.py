@@ -25,20 +25,24 @@ class SessionModel(models.Model):
 		('transaction', 'Этап заключения сделок')
 	)
 
-	name = models.CharField(max_length=150)
-	game_type = models.CharField(max_length=15, choices=GAME_TYPES, default='normal')
-	turn_count = models.PositiveSmallIntegerField()
+	name = models.CharField(max_length=150, verbose_name="Название")
+	game_type = models.CharField(max_length=15, choices=GAME_TYPES, default='normal', verbose_name='Тип игры')
+	turn_count = models.PositiveSmallIntegerField(verbose_name="Число ходов")
 
 	# Всё, что помечено аргументом editable, впоследствии может уйти в админку, поэтому лучше выделять эти
 	# параметры отдельно
-	number_of_brokers = models.PositiveSmallIntegerField(editable=False, default=0)
-	crown_balance = models.PositiveSmallIntegerField(default=0, editable=False)
-	status = models.CharField(max_length=15, choices=SESSION_STATUSES, default='initialized', editable=True)
-	broker_starting_balance = models.PositiveSmallIntegerField(editable=False, default=0)
-	producer_starting_balance = models.PositiveSmallIntegerField(editable=False, default=0)
+	number_of_brokers = models.PositiveSmallIntegerField(editable=True, default=0, verbose_name="Число маклеров")
+	crown_balance = models.PositiveSmallIntegerField(default=0, editable=False, verbose_name='Баланс Короны')
+	status = models.CharField(max_length=15, choices=SESSION_STATUSES, default='initialized', editable=False, verbose_name="Статус")
+	broker_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
+															   verbose_name='Баланс \n маклера')
+	producer_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
+																 verbose_name="Баланс производителя")
 	transaction_limit = models.PositiveSmallIntegerField(default=2000, editable=False)
 	current_turn = models.PositiveSmallIntegerField(verbose_name='Текущий ход', default=0, editable=True)
-	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True)
+	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=False, verbose_name="Фаза хода")
+	allow_show_balance = models.BooleanField(default=False, verbose_name='Разрешить производителям показывать баланс')
+	allow_show_transacton_sum = models.BooleanField(default=False, verbose_name="Показывать маклерам сумму транзакций")
 
 	class Meta:
 		verbose_name = 'Сессия'
@@ -102,15 +106,14 @@ class ProducerModel(models.Model):
 			super().__str__()
 
 
+def generate_code():
+	"""
+	Генерирует шестизначный код маклера
+	"""
+	return random.randint(111111, 999999)
+
+
 class BrokerModel(models.Model):
-
-	@staticmethod
-	def generate_code():
-		"""
-		Генерирует шестизначный код маклера
-		"""
-		return random.randint(111111, 999999)
-
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='broker')
 	code = models.PositiveSmallIntegerField()
 
@@ -128,7 +131,7 @@ class BrokerModel(models.Model):
 		"""
 		Генерирует новый код при пересчёте
 		"""
-		self.code = self.generate_code()
+		self.code = generate_code()
 		super().save()
 
 

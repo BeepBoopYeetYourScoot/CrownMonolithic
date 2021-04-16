@@ -13,8 +13,8 @@ from rest_framework.decorators import action
 from authorization.services.create_player import create_player
 from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
-from game.services.normal.data_access.count_session import change_phase, start_session,\
-	count_session, produce_billets, send_trade, cancel_trade, end_turn, cancel_end_turn,\
+from game.services.normal.data_access.count_session import change_phase, start_session, \
+	count_session, produce_billets, send_trade, cancel_trade, end_turn, cancel_end_turn, \
 	accept_transaction, deny_transaction, finish_by_player_count
 
 from django.template import loader
@@ -106,7 +106,6 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			status=status.HTTP_200_OK
 		)
 
-
 	@action(methods=['post'], detail=True, url_path='join')
 	def join_session(self, request, pk):
 		"""
@@ -131,7 +130,6 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			return Response({'detail': 'Session is already started!'},
 							status=status.HTTP_400_BAD_REQUEST)
 
-
 	@action(methods=['delete'], detail=True, url_path='leave')
 	def leave_session(self, request, pk):
 		"""
@@ -150,12 +148,29 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			return Response({'detail': 'You\'re not in this session'},
 							status=status.HTTP_400_BAD_REQUEST)
 
+	@action(detail=True, url_path='results')
+	def show_results(self, request, pk):
+		"""
+		Показывает список игроков согласно балансу
+		"""
+		session_instance = SessionModel.objects.get(pk=pk)
+		if session_instance.status == 'finished':
+			players = PlayerModel.objects.filter(session_id=session_instance.id).order_by('-balance')
+			return Response(
+				serializers.PlayerSerializer(players, many=True),
+				status=status.HTTP_200_OK
+			)
+		return Response(
+			{'detail': 'Сессия не завершена!'},
+			status=status.HTTP_400_BAD_REQUEST
+		)
+
 
 class PlayerViewSet(viewsets.ModelViewSet):
 	queryset = PlayerModel.objects.all()
 	serializer_class = serializers.PlayerSerializer
 
-	@action(methods=['GET'], permission_classes=[IsPlayer],	detail=False)
+	@action(methods=['GET'], permission_classes=[IsPlayer], detail=False)
 	def me(self, request):
 		return Response(self.get_serializer(request.player).data,
 						status=status.HTTP_200_OK)
@@ -169,7 +184,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		if not request.player.session.status == 'started':
 			return Response({
 				'detail': 'Session is not started!'
-			},status=status.HTTP_400_BAD_REQUEST)
+			}, status=status.HTTP_400_BAD_REQUEST)
 		end_turn(request.player)
 		finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
@@ -183,7 +198,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		if not request.player.session.status == 'started':
 			return Response({
 				'detail': 'Session is not started!'
-			},status=status.HTTP_400_BAD_REQUEST)
+			}, status=status.HTTP_400_BAD_REQUEST)
 		cancel_end_turn(request.player)
 		return Response(status=status.HTTP_200_OK)
 
@@ -227,15 +242,24 @@ class ProducerViewSet(ModelViewSet):
 		Отправляет маклеру предложение о сделке
 		"""
 		producer = ProducerModel.objects.get(player_id=pk)
+		# FIXME
 		broker = BrokerModel.objects.get(player_id=request.data.get('broker'))
-		terms = request.data.get('terms')
-		send_trade(producer, broker, terms)
+		code = request.data.get('code')
+		if broker.code == code:
+			terms = request.data.get('terms')
+			send_trade(producer, broker, terms)
+			return Response(
+				{
+					'detail': f'Отправлена сделка от {producer.player.nickname} к {broker.player.nickname}',
+					'terms': terms
+				},
+				status=status.HTTP_201_CREATED
+			)
 		return Response(
 			{
-				'detail': f'Отправлена сделка от {producer.player.nickname} к {broker.player.nickname}',
-				'terms': terms
+				'detail': 'Неверный код маклера!'
 			},
-			status=status.HTTP_201_CREATED
+			status=status.HTTP_406_NOT_ACCEPTABLE
 		)
 
 	@action(methods=['delete'], detail=True, url_path='cancel-trade')
@@ -348,8 +372,37 @@ class BrokerViewSet(ModelViewSet):
 		pass
 
 
-class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin,
-						 mixins.ListModelMixin):
+
+class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
+						 mixins.UpdateModelMixin, mixins.ListModelMixin):
 	queryset = TransactionModel.objects.all()
 	serializer_class = serializers.TransactionSerializer
-	permission_classes = [IsInSession]
+	permission_classes = [IsPlayer]
+
+	@action(methods=['get'], detail=False)
+	def current_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+
+	@action(methods=['get'], detail=False)
+	def previous_turn_transactions(self, request):
+		try:
+			transactions = request.player.broker.transaction
+		except BrokerModel.DoesNotExist:
+			transactions = request.player.producer.transaction
+
+		filtered_transactions = transactions.filter(
+			turn=request.player.session.current_turn - 1
+		)
+		serializer = serializers.TransactionSerializer(filtered_transactions,
+													   many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
