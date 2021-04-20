@@ -174,7 +174,8 @@ class TransactionModel(models.Model):
 
 # FIXME: Нужно убрать логически повторяющиеся поля
 class BalanceDetail(models.Model):
-	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='detail')
+	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
+								  related_name='detail')
 	start_turn_balance = models.IntegerField(default=0)
 	end_turn_balance = models.IntegerField(default=0)
 	sales_income = models.IntegerField(default=0)
@@ -187,3 +188,30 @@ class BalanceDetail(models.Model):
 	purchase_blanks = models.IntegerField(default=0)
 	blanks = models.IntegerField(default=0)
 	crown = models.IntegerField(default=0)
+
+
+class BalanceRequest(models.Model):
+	TRANSACTION_STATUSES = (
+		('active', 'Запрос на рассмотрении'),
+		('accepted', 'Запрос согласован'),
+		('denied', 'Запрос отклонен')
+	)
+
+	producer = models.ForeignKey(PlayerModel, on_delete=models.CASCADE)
+	broker = models.ForeignKey(PlayerModel, on_delete=models.CASCADE,
+							   related_name='balance_requests')
+	status = models.CharField(max_length=10, choices=TRANSACTION_STATUSES,
+							  default='active')
+	turn = models.PositiveSmallIntegerField()
+
+	class Meta:
+		verbose_name = 'Запрос баланса'
+		verbose_name_plural = 'Запросы баланса'
+		ordering = ['-id']
+
+	def __str__(self):
+		if self.producer is not None and self.broker is not None:
+			return f'Запрос баланса в сессии ' \
+				   f'{self.producer.player.session.name} ' \
+				   f'от {self.broker.player.nickname} ' \
+				   f'к {self.producer.player.nickname}'
