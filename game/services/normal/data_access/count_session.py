@@ -9,6 +9,7 @@ from game.services.role_randomizer import distribute_roles
 from game.serializers import ProducerBalanceDetailSerializer,\
 	BrokerBalanceDetailSerializer
 
+
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
 	('15-20', '15-20 Игроков'),
@@ -342,16 +343,53 @@ def deny_transaction(producer, broker):
 	transaction.save()
 
 
-def create_balance_request(producer_player_ins, broker_player_ins) -> None:
+def create_balance_request(producer, broker) -> None:
 	"""
 	Создает запрос на просмотр баланса
 	:param producer: PlayerModel
 	:param broker: PlayerModel
-	:param turn: int
 	"""
 	BalanceRequest.objects.create(
-		producer=producer_player_ins,
-		broker=broker_player_ins,
-		turn=broker_player_ins.session.current_turn
+		producer=producer,
+		broker=broker,
+		turn=broker.session.current_turn
 	)
+	return
+
+
+def accept_balance_request(producer, broker) -> None:
+	"""
+	Согласует запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	"""
+	requests = BalanceRequest.objects.filter(
+		producer=producer,
+		broker=broker,
+		turn=broker.session.current_turn,
+		status='active'
+	)
+	# Цикл для ситуации, в которой маклер несколько раз отправил заявку
+	for request in requests:
+		request.status = 'accepted'
+		request.save()
+	return
+
+
+def deny_balance_request(producer, broker) -> None:
+	"""
+	Отклоняет запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	"""
+	requests = BalanceRequest.objects.filter(
+		producer=producer,
+		broker=broker,
+		turn=broker.session.current_turn,
+		status='active'
+	)
+	# Цикл для ситуации, в которой маклер несколько раз отправил заявку
+	for request in requests:
+		request.status = 'denied'
+		request.save()
 	return

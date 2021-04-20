@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
@@ -15,7 +16,8 @@ from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
 	start_session, count_session, produce_billets, send_trade, cancel_trade,\
 	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
-	finish_by_player_count, create_balance_request
+	finish_by_player_count, create_balance_request, accept_balance_request, \
+	deny_balance_request
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -29,13 +31,6 @@ import requests
 # detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
 
 BASE_URL = 'http://0.0.0.0:8000/change/'
-
-request_header = {
-	'Authorization': {
-		'description': 'Player auth token',
-		'type': 'string'
-	}
-}
 
 class SessionAdminViewSet(ModelViewSet):
 	"""
@@ -223,7 +218,6 @@ class ProducerViewSet(ModelViewSet):
 	serializer_class = serializers.ProducerSerializer
 	permission_classes = [IsPlayer]
 
-
 	@action(methods=['POST'], detail=True)
 	def produce(self, request, pk):
 		"""
@@ -290,10 +284,9 @@ class ProducerViewSet(ModelViewSet):
 	# 	"""
 	# 	pass
 
-
-	@swagger_auto_schema(responses={ '200': 'OK', '400': 'Error' })
-	@action(methods=['get'], detail=False, url_path='get-balance-requests',
-			url_name='balance_requests_list')
+	@swagger_auto_schema(responses={ '200': 'OK' })
+	@action(methods=['get'], detail=False, url_path='received-balance-requests',
+			url_name='received_balance_requests_list')
 	def get_balance_requests_list(self, request):
 		"""
 		Получает список не рассмотренных запросов
@@ -305,24 +298,6 @@ class ProducerViewSet(ModelViewSet):
 														  many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
-	@swagger_auto_schema(
-		request_body=openapi.Schema(
-			type=openapi.TYPE_OBJECT,
-			required=['broker'],
-			properties={
-				'broker': openapi.Schema(
-					type=openapi.TYPE_INTEGER,
-					description='Player id'
-				),
-			},
-		),
-		responses={ '200': 'OK', '400': 'Error' })
-	@action(methods=['put'], detail=False, url_path='accept-show-balance')
-	def accept_show_balance(self, request):
-		"""
-		Подтверждает показ баланса маклеру
-		"""
-		pass
 
 	@swagger_auto_schema(
 		request_body=openapi.Schema(
@@ -335,13 +310,37 @@ class ProducerViewSet(ModelViewSet):
 				),
 			},
 		),
-		responses={ '200': 'OK', '400': 'Error' })
-	@action(methods=['put'], detail=False, url_path='deny-show-balance')
+		responses={ '200': 'Success', '404': 'Bad broker' })
+	@action(methods=['put'], detail=False, url_path='accept-balance-request')
+	def accept_show_balance(self, request):
+		"""
+		Подтверждает показ баланса маклеру
+		"""
+		broker = get_object_or_404(PlayerModel, pk=request.data.get('broker'))
+		accept_balance_request(request.player, broker)
+		return Response(status=status.HTTP_200_OK)
+
+
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['broker'],
+			properties={
+				'broker': openapi.Schema(
+					type=openapi.TYPE_INTEGER,
+					description='Player id'
+				),
+			},
+		),
+		responses={ '204': 'Success', '404': 'Bad broker' })
+	@action(methods=['put'], detail=False, url_path='deny-balance-request')
 	def deny_show_balance(self, request):
 		"""
 		Отклоняет запрос на показ баланса
 		"""
-		pass
+		broker = get_object_or_404(PlayerModel, pk=request.data.get('broker'))
+		deny_balance_request(request.player, broker)
+		return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BrokerViewSet(ModelViewSet):
