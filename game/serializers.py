@@ -133,7 +133,8 @@ class ProducerSerializer(serializers.ModelSerializer):
 	def get_producer_transactions(instance):
 		transactions = instance.transaction.filter(
 			producer=instance.id,
-			turn=instance.player.session.current_turn
+			turn=instance.player.session.current_turn,
+			order_by='-id'
 		)
 		return TransactionSerializer(transactions, many=True).data
 
@@ -153,7 +154,8 @@ class BrokerSerializer(serializers.ModelSerializer):
 			instance.transaction.filter(
 				broker=instance.id,
 				turn=instance.player.session.current_turn,
-				status='active'
+				status='active',
+				order_by='-id'
 
 			),
 			many=True
