@@ -212,6 +212,6 @@ class BalanceRequest(models.Model):
 	def __str__(self):
 		if self.producer is not None and self.broker is not None:
 			return f'Запрос баланса в сессии ' \
-				   f'{self.producer.player.session.name} ' \
-				   f'от {self.broker.player.nickname} ' \
-				   f'к {self.producer.player.nickname}'
+				   f'{self.producer.session.name} ' \
+				   f'от {self.broker.nickname} ' \
+				   f'к {self.producer.nickname}'
