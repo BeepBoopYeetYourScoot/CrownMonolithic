@@ -46,7 +46,7 @@ class SessionAdminViewSet(ModelViewSet):
 		"""
 		session = SessionModel.objects.get(pk=pk)
 		start_session(session)
-		requests.get('http://0.0.0.0:8000/start/')
+		# requests.get('http://0.0.0.0:8000/start/')
 		return Response({'detail': 'Session started'}, status=status.HTTP_200_OK)
 
 	@action(methods=['PUT'], detail=True, url_path='set-turn-phase', permission_classes=[])
@@ -120,7 +120,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			nickname = request.data.get('nickname')
 			player = create_player(session, nickname)
 
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(PlayerWithTokenSerializer(player).data,
 							status=status.HTTP_201_CREATED)
 		except SessionModel.DoesNotExist:
@@ -139,7 +139,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			session_instance = SessionModel.objects.get(pk=pk)
 			assert request.player.session.id == session_instance.id, "Вы не в той сессии"
 			request.player.delete()
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		except SessionModel.DoesNotExist:
 			return Response({'detail': 'No such session'},

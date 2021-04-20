@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel, BalanceDetail
+from django.db.models import Sum
 
 
 class LobbySerializer(serializers.ModelSerializer):
@@ -139,11 +140,20 @@ class ProducerSerializer(serializers.ModelSerializer):
 
 class BrokerSerializer(serializers.ModelSerializer):
 	transactions = serializers.SerializerMethodField('get_broker_transactions')
+	pushared_billets = serializers.SerializerMethodField('get_pushared_billets')
 
 	class Meta:
 		model = BrokerModel
 		fields = '__all__'
 		read_only = '__all__'
+
+	#FIXME: оптимизируй меня... или убей
+	def get_pushared_billets(self, instance):
+		pushared_billets = instance.transaction\
+			.filter(turn=instance.player.session.current_turn, status='accepted')\
+			.aggregate(pushared_billets=Sum('quantity'))\
+			.get('pushared_billets', 0)
+		return pushared_billets
 
 	# FIXME: optimize me, please
 	def get_broker_transactions(self, instance):
