@@ -154,6 +154,7 @@ class TransactionModel(models.Model):
 	class Meta:
 		verbose_name = 'Транзакция'
 		verbose_name_plural = 'Транзакции'
+		ordering = ['-id']
 
 	def __str__(self):
 		if self.producer is not None and self.broker is not None:
