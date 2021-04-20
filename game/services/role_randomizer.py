@@ -6,6 +6,7 @@ def distribute_roles(session_instance):
 	Распределяет роли игроков в сессии
 	"""
 	players_queryset = session_instance.player.all()
+	print(players_queryset)
 
 	min_players, max_players = 12, 37
 	assert int(min_players) <= session_instance.player.count() <= int(max_players), 'Недопустимое количество игроков!'

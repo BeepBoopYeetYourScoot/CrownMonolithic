@@ -22,7 +22,6 @@ from django.http import HttpResponse
 
 import requests
 
-
 # Декоратор @action. Дефолтные значениея:
 # methods - GET
 # url_path - НАЗВАНИЕ_МЕТОДА
@@ -31,13 +30,14 @@ import requests
 
 BASE_URL = 'http://0.0.0.0:8000/change/'
 
+
 class SessionAdminViewSet(ModelViewSet):
 	"""
 	Обрабатывает сессии для администраторов
 	"""
 	queryset = SessionModel.objects.all()
 	serializer_class = serializers.SessionAdminSerializer
-	permission_classes = [IsAdminUser]
+	# permission_classes = [IsAdminUser]
 
 	@action(methods=['GET'], detail=True, url_path='start-session', permission_classes=[])
 	def start_session(self, request, pk):
@@ -87,7 +87,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		Выдаёт список с созданными администратором сессиями
 		"""
-		queryset = self.get_queryset().filter(status='initialized')
+		queryset = self.queryset.filter(status='initializer')
 		serializer = serializers.LobbySerializer(queryset, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -241,7 +241,7 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(player_id=pk)
+		producer = ProducerModel.objects.get(pk=pk)
 		# FIXME
 		broker = BrokerModel.objects.get(player_id=request.data.get('broker'))
 		code = request.data.get('code')
@@ -251,7 +251,7 @@ class ProducerViewSet(ModelViewSet):
 			return Response(
 				{
 					'detail': f'Отправлена сделка от {producer.player.nickname} к {broker.player.nickname}',
-					'terms': terms
+					'Условия': terms
 				},
 				status=status.HTTP_201_CREATED
 			)
@@ -287,13 +287,6 @@ class ProducerViewSet(ModelViewSet):
 	# 		serializers.FullProducerInfoSerializer(player).data,
 	# 		status=status.HTTP_200_OK
 	# 	)
-
-	@action(detail=True, url_path='balance-detail')
-	def balance_detail(self, request, pk):
-		"""
-		Показывает детализацию баланса за предыдущий ход
-		"""
-		pass
 
 	@action(detail=True, url_path='balance-history')
 	def balance_history(self, request, pk):
