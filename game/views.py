@@ -225,7 +225,7 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет запрос на производство заготовок
 		"""
-		producer = ProducerModel.objects.get(pk=pk)
+		producer = ProducerModel.objects.get(player_id=request.data.get("producer_player"))
 		quantity = request.data.get('quantity')
 		produce_billets(producer, quantity)
 		return Response(
@@ -241,8 +241,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(pk=pk)
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		code = request.data.get('code')
 		if broker.code == code:
 			terms = request.data.get('terms')
@@ -266,8 +266,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отменяет сделку с маклером
 		"""
-		producer = ProducerModel.objects.get(player_id=pk)
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		cancel_trade(producer, broker)
 		return Response(
 			{
@@ -331,8 +331,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Одобряет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer'))
-		broker = BrokerModel.objects.get(id=pk)
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		accept_transaction(producer, broker)
 		return Response(
 			{
@@ -346,8 +346,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Отклоняет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer'))
-		broker = BrokerModel.objects.get(id=pk)
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		deny_transaction(producer, broker)
 		return Response(
 			{
