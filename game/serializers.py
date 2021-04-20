@@ -119,6 +119,7 @@ class ProducerSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = ProducerModel
 		fields = [
+			'id',
 			'player',
 			'billets_produced',
 			'billets_stored',

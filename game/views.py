@@ -225,7 +225,7 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет запрос на производство заготовок
 		"""
-		producer = ProducerModel.objects.get(player_id=pk)
+		producer = ProducerModel.objects.get(pk=pk)
 		quantity = request.data.get('quantity')
 		produce_billets(producer, quantity)
 		return Response(
@@ -242,7 +242,6 @@ class ProducerViewSet(ModelViewSet):
 		Отправляет маклеру предложение о сделке
 		"""
 		producer = ProducerModel.objects.get(pk=pk)
-		# FIXME
 		broker = BrokerModel.objects.get(player_id=request.data.get('broker'))
 		code = request.data.get('code')
 		if broker.code == code:
@@ -332,7 +331,7 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Одобряет сделку с производителем
 		"""
-		producer = request.data.get('producer')
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer'))
 		broker = BrokerModel.objects.get(id=pk)
 		accept_transaction(producer, broker)
 		return Response(
@@ -347,7 +346,7 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Отклоняет сделку с производителем
 		"""
-		producer = request.data.get('producer')
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer'))
 		broker = BrokerModel.objects.get(id=pk)
 		deny_transaction(producer, broker)
 		return Response(
