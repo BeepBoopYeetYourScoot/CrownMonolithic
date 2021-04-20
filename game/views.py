@@ -1,4 +1,3 @@
-from django.shortcuts import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
@@ -18,8 +17,8 @@ from game.services.normal.data_access.count_session import change_phase, \
 	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
 	finish_by_player_count, create_balance_request
 
-from django.template import loader
-from django.http import HttpResponse
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 import requests
 
@@ -31,6 +30,12 @@ import requests
 
 BASE_URL = 'http://0.0.0.0:8000/change/'
 
+request_header = {
+	'Authorization': {
+		'description': 'Player auth token',
+		'type': 'string'
+	}
+}
 
 class SessionAdminViewSet(ModelViewSet):
 	"""
@@ -287,15 +292,48 @@ class ProducerViewSet(ModelViewSet):
 	# 	"""
 	# 	pass
 
-	@action(methods=[''], detail=True, url_path='accept-show-balace')
-	def accept_show_balance(self, request, pk):
+
+	@swagger_auto_schema(responses={ '200': 'OK', '400': 'Error' })
+	@action(methods=['get'], detail=False, url_path='get-balance-requests')
+	def get_balance_requests_list(self, request):
+		"""
+		Получает список запросов
+		"""
+		pass
+
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['broker'],
+			properties={
+				'broker': openapi.Schema(
+					type=openapi.TYPE_INTEGER,
+					description='Player id'
+				),
+			},
+		),
+		responses={ '200': 'OK', '400': 'Error' })
+	@action(methods=['put'], detail=False, url_path='accept-show-balance')
+	def accept_show_balance(self, request):
 		"""
 		Подтверждает показ баланса маклеру
 		"""
 		pass
 
-	@action(methods=[''], detail=True, url_path='deny-show-balance')
-	def deny_show_balance(self, request, pk):
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['broker'],
+			properties={
+				'broker': openapi.Schema(
+					type=openapi.TYPE_INTEGER,
+					description='Player id'
+				),
+			},
+		),
+		responses={ '200': 'OK', '400': 'Error' })
+	@action(methods=['put'], detail=False, url_path='deny-show-balance')
+	def deny_show_balance(self, request):
 		"""
 		Отклоняет запрос на показ баланса
 		"""
@@ -336,6 +374,16 @@ class BrokerViewSet(ModelViewSet):
 			status=status.HTTP_200_OK
 		)
 
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['producer'],
+			properties={
+				'producer': openapi.Schema(type=openapi.TYPE_INTEGER),
+			},
+		),
+		responses={ '201': 'Created', '400': 'Error' }
+	)
 	@action(methods=['post'], detail=False, url_path='request-balance')
 	def request_balance(self, request):
 		"""
