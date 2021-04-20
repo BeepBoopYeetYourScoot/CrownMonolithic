@@ -13,9 +13,10 @@ from rest_framework.decorators import action
 from authorization.services.create_player import create_player
 from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
-from game.services.normal.data_access.count_session import change_phase, start_session, \
-	count_session, produce_billets, send_trade, cancel_trade, end_turn, cancel_end_turn, \
-	accept_transaction, deny_transaction, finish_by_player_count
+from game.services.normal.data_access.count_session import change_phase, \
+	start_session, count_session, produce_billets, send_trade, cancel_trade,\
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
+	finish_by_player_count, create_balance_request
 
 from django.template import loader
 from django.http import HttpResponse
@@ -46,7 +47,7 @@ class SessionAdminViewSet(ModelViewSet):
 		"""
 		session = SessionModel.objects.get(pk=pk)
 		start_session(session)
-		requests.get('http://0.0.0.0:8000/start/')
+		# requests.get('http://0.0.0.0:8000/start/')
 		return Response({'detail': 'Session started'}, status=status.HTTP_200_OK)
 
 	@action(methods=['PUT'], detail=True, url_path='set-turn-phase', permission_classes=[])
@@ -120,7 +121,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			nickname = request.data.get('nickname')
 			player = create_player(session, nickname)
 
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(PlayerWithTokenSerializer(player).data,
 							status=status.HTTP_201_CREATED)
 		except SessionModel.DoesNotExist:
@@ -139,7 +140,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			session_instance = SessionModel.objects.get(pk=pk)
 			assert request.player.session.id == session_instance.id, "Вы не в той сессии"
 			request.player.delete()
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		except SessionModel.DoesNotExist:
 			return Response({'detail': 'No such session'},
@@ -249,7 +250,8 @@ class ProducerViewSet(ModelViewSet):
 			send_trade(producer, broker, terms)
 			return Response(
 				{
-					'detail': f'Отправлена сделка от {producer.player.nickname} к {broker.player.nickname}',
+					'detail': f'Отправлена сделка от {producer.player.nickname}'\
+							  f'к {broker.player.nickname}',
 					'Условия': terms
 				},
 				status=status.HTTP_201_CREATED
@@ -276,23 +278,14 @@ class ProducerViewSet(ModelViewSet):
 			status=status.HTTP_204_NO_CONTENT
 		)
 
-	# @action(detail=True)
-	# def me(self, request, pk):
+	# FIXME: For what?
+	#
+	# @action(detail=True, url_path='balance-history')
+	# def balance_history(self, request, pk):
 	# 	"""
-	# 	Отправляет полные данные о текущем игроке
+	# 	Показывает детализацию баланса за игру
 	# 	"""
-	# 	player = PlayerModel.objects.get(producer=pk)
-	# 	return Response(
-	# 		serializers.FullProducerInfoSerializer(player).data,
-	# 		status=status.HTTP_200_OK
-	# 	)
-
-	@action(detail=True, url_path='balance-history')
-	def balance_history(self, request, pk):
-		"""
-		Показывает детализацию баланса за игру
-		"""
-		pass
+	# 	pass
 
 	@action(methods=[''], detail=True, url_path='accept-show-balace')
 	def accept_show_balance(self, request, pk):
@@ -312,19 +305,6 @@ class ProducerViewSet(ModelViewSet):
 class BrokerViewSet(ModelViewSet):
 	queryset = BrokerModel.objects.all()
 	serializer_class = serializers.BrokerSerializer
-
-	# permission_classes = [IsInSession]
-
-	# @action(detail=True)
-	# def me(self, request, pk):
-	# 	"""
-	# 	Отправляет полные данные о текущем игроке
-	# 	"""
-	# 	broker = PlayerModel.objects.get(broker_id=pk)
-	# 	return Response(
-	# 		serializers.PlayerSerializer(broker).data,
-	# 		status=status.HTTP_200_OK
-	# 	)
 
 	@action(methods=['put'], detail=True, url_path='accept')
 	def accept_transaction(self, request, pk):
@@ -356,12 +336,24 @@ class BrokerViewSet(ModelViewSet):
 			status=status.HTTP_200_OK
 		)
 
-	@action(methods=['get'], detail=True, url_path='request-balance')
-	def request_balance(self, request, pk):
+	@action(methods=['post'], detail=False, url_path='request-balance')
+	def request_balance(self, request):
 		"""
 		Запрашивает баланс производителя
 		"""
-		pass
+		producer_id = request.data.get('producer', None)
+		if not producer_id:
+			return Response({'detail': 'Empty producer field!'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		try:
+			producer = PlayerModel.objects.get(pk=producer_id)
+		except PlayerModel.DoesNotExist:
+			return Responce({'detail': 'No such producer!'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		create_balance_request(producer, request.player)
+		return Response(status=status.HTTP_201_CREATED)
 
 
 class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,

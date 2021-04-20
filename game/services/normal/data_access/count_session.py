@@ -1,11 +1,13 @@
-from game.models import PlayerModel, TransactionModel, BalanceDetail
+from game.models import PlayerModel, TransactionModel, BalanceDetail,\
+	BalanceRequest
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
-from game.serializers import ProducerBalanceDetailSerializer, BrokerBalanceDetailSerializer
+from game.serializers import ProducerBalanceDetailSerializer,\
+	BrokerBalanceDetailSerializer
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -338,3 +340,18 @@ def deny_transaction(producer, broker):
 	)
 	transaction.status = 'denied'
 	transaction.save()
+
+
+def create_balance_request(producer_player_ins, broker_player_ins) -> None:
+	"""
+	Создает запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	:param turn: int
+	"""
+	BalanceRequest.objects.create(
+		producer=producer_player_ins,
+		broker=broker_player_ins,
+		turn=broker_player_ins.session.current_turn
+	)
+	return
