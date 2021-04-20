@@ -1,0 +1,49 @@
+{
+  "methods": [
+    {
+      "model": "producer",
+      "method": "produce",
+      "signature": {
+        "producer_player": "producer_player_id",
+        "quantity": 0
+      }
+    },
+    {
+      "model": "producer",
+      "method": "trade",
+      "signature": {
+        "producer_player": "producer_player_id",
+        "broker_player": "broker_player_id",
+        "terms": {
+          "quantity": 0,
+          "price": 0
+        }
+      }
+    },
+    {
+      "model": "producer",
+      "method": "cancel-trade",
+      "signature": {
+        "producer_player": "producer_player_id",
+        "broker_player": "broker_player_id"
+      }
+    },
+    {
+      "model": "broker",
+      "method": "accept_transaction",
+      "signature": {
+        "producer_player": "producer_player_id",
+        "broker_player": "broker_player_id"
+      }
+    },
+    {
+      "model": "broker",
+      "method": "deny_transaction",
+      "signature": {
+        "producer_player": "producer_player_id",
+        "broker_player": "broker_player_id"
+      }
+    }
+  ]
+}
+
