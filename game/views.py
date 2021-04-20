@@ -201,7 +201,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 			return Response({'detail': 'Session is not started or finished!'}, status=status.HTTP_400_BAD_REQUEST)
 		if request.player.session.current_turn == 1:
 			return Response({'detail': 'There is no detail on first turn!'}, status=status.HTTP_400_BAD_REQUEST)
-		serializer = serializers.ProducerBalanceDetailSerializer if request.player.role == 'producer'\
+		serializer = serializers.ProducerBalanceDetailSerializer if request.player.role == 'producer' \
 			else serializers.BrokerBalanceDetailSerializer
 		return Response(serializer(request.player.detail).data, status=status.HTTP_200_OK)
 
@@ -363,7 +363,6 @@ class BrokerViewSet(ModelViewSet):
 		Запрашивает баланс производителя
 		"""
 		pass
-
 
 
 class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,

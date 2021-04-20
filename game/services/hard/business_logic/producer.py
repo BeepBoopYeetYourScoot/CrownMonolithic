@@ -24,7 +24,7 @@ class ProducerHard(AbstractProducer):
 
     def count_fixed_costs(self) -> float:
         rent_coefficient = 0.93 ** (self.machine[1] - 1)
-        base_fixed_costs = 600
+        base_fixed_costs = 1000
         # Для китайских станков
         if self.machinery['chinese'][0] == self.machine_quality['chinese']:
             if self.billets_produced[0] <= 10:
