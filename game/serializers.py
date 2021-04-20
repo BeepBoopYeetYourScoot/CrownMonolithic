@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel, BalanceDetail
+from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel,\
+	TransactionModel, BalanceDetail, BalanceRequest
 
 
 class LobbySerializer(serializers.ModelSerializer):
@@ -246,4 +247,12 @@ class ProducerBalanceDetailSerializer(serializers.ModelSerializer):
 			'fine',
 			'storage',
 			'logistics',
+		]
+
+
+class BalanceRequestSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = BalanceRequest
+		exclude = [
+			'turn'
 		]

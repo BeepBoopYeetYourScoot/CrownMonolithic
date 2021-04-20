@@ -3,7 +3,7 @@ from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from .models import SessionModel, PlayerModel, ProducerModel, TransactionModel, \
-	BrokerModel
+	BrokerModel, BalanceRequest
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from . import serializers
 from .permissions import IsInSession, IsThePlayer
@@ -175,14 +175,14 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 class PlayerViewSet(viewsets.ModelViewSet):
 	queryset = PlayerModel.objects.all()
 	serializer_class = serializers.PlayerSerializer
+	permission_classes = [IsPlayer]
 
-	@action(methods=['GET'], permission_classes=[IsPlayer], detail=False)
+	@action(methods=['GET'], detail=False)
 	def me(self, request):
 		return Response(self.get_serializer(request.player).data,
 						status=status.HTTP_200_OK)
 
-	@action(methods=['put'], permission_classes=[IsPlayer], detail=False,
-			url_path='end-turn')
+	@action(methods=['put'], detail=False, url_path='end-turn')
 	def end_turn(self, request):
 		"""
 		Завершает ход
@@ -195,8 +195,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
 
-	@action(methods=['put'], permission_classes=[IsPlayer], detail=False,
-			url_path='cancel-end-turn')
+	@action(methods=['put'], detail=False, url_path='cancel-end-turn')
 	def cancel_end_turn(self, request):
 		"""
 		Завершает ход
@@ -208,7 +207,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		cancel_end_turn(request.player)
 		return Response(status=status.HTTP_200_OK)
 
-	@action(methods=['get'], permission_classes=[IsPlayer], detail=False)
+	@action(methods=['get'], detail=False)
 	def balance_detail(self, request):
 		if not request.player.session.status == 'started':
 			return Response({'detail': 'Session is not started or finished!'}, status=status.HTTP_400_BAD_REQUEST)
@@ -222,10 +221,9 @@ class PlayerViewSet(viewsets.ModelViewSet):
 class ProducerViewSet(ModelViewSet):
 	queryset = ProducerModel.objects.all()
 	serializer_class = serializers.ProducerSerializer
+	permission_classes = [IsPlayer]
 
-	# permission_classes = [IsInSession]
 
-	# permission_classes = [IsThePlayer]
 	@action(methods=['POST'], detail=True)
 	def produce(self, request, pk):
 		"""
@@ -294,12 +292,18 @@ class ProducerViewSet(ModelViewSet):
 
 
 	@swagger_auto_schema(responses={ '200': 'OK', '400': 'Error' })
-	@action(methods=['get'], detail=False, url_path='get-balance-requests')
+	@action(methods=['get'], detail=False, url_path='get-balance-requests',
+			url_name='balance_requests_list')
 	def get_balance_requests_list(self, request):
 		"""
-		Получает список запросов
+		Получает список не рассмотренных запросов
 		"""
-		pass
+		player = request.player
+		request_instances = player.received_balance_requests.filter(
+			turn=player.session.current_turn, status='active')
+		serializer = serializers.BalanceRequestSerializer(request_instances,
+														  many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
 	@swagger_auto_schema(
 		request_body=openapi.Schema(

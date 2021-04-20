@@ -197,9 +197,10 @@ class BalanceRequest(models.Model):
 		('denied', 'Запрос отклонен')
 	)
 
-	producer = models.ForeignKey(PlayerModel, on_delete=models.CASCADE)
+	producer = models.ForeignKey(PlayerModel, on_delete=models.CASCADE,
+								 related_name='received_balance_requests')
 	broker = models.ForeignKey(PlayerModel, on_delete=models.CASCADE,
-							   related_name='balance_requests')
+							   related_name='sent_balance_requests')
 	status = models.CharField(max_length=10, choices=TRANSACTION_STATUSES,
 							  default='active')
 	turn = models.PositiveSmallIntegerField()
