@@ -40,7 +40,7 @@ class SessionModel(models.Model):
 																 verbose_name="Баланс производителя")
 	transaction_limit = models.PositiveSmallIntegerField(default=2000, editable=False)
 	current_turn = models.PositiveSmallIntegerField(verbose_name='Текущий ход', default=0, editable=True)
-	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=False, verbose_name="Фаза хода")
+	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True, verbose_name="Фаза хода")
 	allow_show_balance = models.BooleanField(default=False, verbose_name='Разрешить производителям показывать баланс')
 	allow_show_transacton_sum = models.BooleanField(default=False, verbose_name="Показывать маклерам сумму транзакций")
 
