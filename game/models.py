@@ -80,6 +80,8 @@ class PlayerModel(PlayerBaseModel):
 												editable=False)
 	ended_turn = models.BooleanField(default=False)
 	city = models.CharField(max_length=20, choices=CITIES, verbose_name='Расположение', default='unassigned')
+	map_url = models.CharField(verbose_name='URL карты игрока', editable=True, blank=True, max_length=200)
+	logistics_url = models.CharField(verbose_name='URL стрелок с логистикой', editable=True, blank=True, max_length=200)
 	balance = models.IntegerField(default=0)
 	is_bankrupt = models.BooleanField(default=False)
 	status = models.CharField(max_length=20, default='OK', verbose_name='Статус банкротства', editable=False)

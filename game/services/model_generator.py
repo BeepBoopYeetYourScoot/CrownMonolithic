@@ -64,22 +64,32 @@ def name_generator():
 		yield name
 
 
+city_names = {
+	'IV': 'ivo',
+	'WS': 'wemshire',
+	'TT': 'tortuga',
+	'AD': 'alendor',
+	'NF': 'neverfall',
+	'ET': 'etrua',
+}
+
+
 def generate_role_instances(session_instance):
 	players = session_instance.player.all()
 	city = city_generator(players.count(), session_instance.number_of_brokers)
 	name_gen = name_generator()
+	number_of_brokers = session_instance.number_of_brokers
 	for player in players:
-		# FIXME це пиздец
 		player.city = next(city)
 		player.role_name = next(name_gen)
+		player.map_url = f"/static/{number_of_brokers}_brokers/map.jpg"
 		if player.role == 'producer':
 			player.balance = session_instance.producer_starting_balance
+			player.logistics_url = f"/static/{number_of_brokers}_brokers/producer/{city_names[player.city]}.png"
 			player.save()
-			models.ProducerModel.objects.create(
-				player=player).save()
+			models.ProducerModel.objects.create(player=player).save()
 		else:
 			player.balance = session_instance.broker_starting_balance
+			player.logistics_url = f"/static/broker/{city_names[player.city]}.png"
 			player.save()
-			models.BrokerModel.objects.create(
-				player=player
-			).save()
+			models.BrokerModel.objects.create(player=player).save()

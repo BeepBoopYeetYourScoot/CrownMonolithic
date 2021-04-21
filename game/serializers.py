@@ -84,6 +84,8 @@ class PlayerSerializer(serializers.ModelSerializer):
 			'role',
 			'role_name',
 			'city',
+			'map_url',
+			'logistics_url',
 			'balance',
 			'ended_turn',
 			'is_bankrupt',
@@ -94,7 +96,9 @@ class PlayerSerializer(serializers.ModelSerializer):
 		read_only = [
 			'id',
 			'status',
-			'position'
+			'position',
+			'map_url'
+			'logistics_url'
 		]
 
 	@staticmethod
