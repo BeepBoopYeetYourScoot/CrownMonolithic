@@ -33,14 +33,16 @@ class SessionModel(models.Model):
 	# параметры отдельно
 	number_of_brokers = models.PositiveSmallIntegerField(editable=True, default=0, verbose_name="Число маклеров")
 	crown_balance = models.PositiveSmallIntegerField(default=0, editable=False, verbose_name='Баланс Короны')
-	status = models.CharField(max_length=15, choices=SESSION_STATUSES, default='initialized', editable=False, verbose_name="Статус")
+	status = models.CharField(max_length=15, choices=SESSION_STATUSES, default='initialized', editable=False,
+							  verbose_name="Статус")
 	broker_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
 															   verbose_name='Баланс \n маклера')
 	producer_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
 																 verbose_name="Баланс производителя")
 	transaction_limit = models.PositiveSmallIntegerField(default=2000, editable=False)
 	current_turn = models.PositiveSmallIntegerField(verbose_name='Текущий ход', default=0, editable=True)
-	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True, verbose_name="Фаза хода")
+	turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True,
+								  verbose_name="Фаза хода")
 	allow_show_balance = models.BooleanField(default=False, verbose_name='Разрешить производителям показывать баланс')
 	allow_show_transacton_sum = models.BooleanField(default=False, verbose_name="Показывать маклерам сумму транзакций")
 
@@ -171,6 +173,7 @@ class TransactionModel(models.Model):
 				self.broker.player.city,
 			)
 		super().save(*args, **kwargs)
+
 
 # FIXME: Нужно убрать логически повторяющиеся поля
 class BalanceDetail(models.Model):

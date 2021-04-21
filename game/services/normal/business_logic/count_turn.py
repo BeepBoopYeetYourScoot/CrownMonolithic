@@ -1,9 +1,5 @@
 from .crown import CrownNormal
 
-# FIXME
-#  На данный момент сделка между маклером и производителем обрывается, если маклер обанкротился при проходе
-#  сделок с производителями в порядке их перечисления. Как это должно выглядеть на самом деле?
-
 
 def count_turn(producer_list: list, broker_list: list, transaction_list: list, crown_balance: float) -> float:
     """
@@ -49,6 +45,8 @@ def count_turn(producer_list: list, broker_list: list, transaction_list: list, c
     for broker in broker_list:
         if broker.is_bankrupt:
             continue
+        for prod in producer_list:
+            broker.disrupt_transaction(prod)
         broker.balance -= broker.count_purchase_costs()
         if broker.balance < 0:
             broker.status = 'VARIABLE'

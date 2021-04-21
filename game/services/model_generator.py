@@ -3,7 +3,6 @@ import random
 
 
 def city_generator(players_amount, brokers_amount):
-
 	cities = [
 		'IV',
 		'WS',
@@ -63,6 +62,7 @@ def name_generator():
 	random.shuffle(names)
 	for name in names:
 		yield name
+
 
 def generate_role_instances(session_instance):
 	players = session_instance.player.all()

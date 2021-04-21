@@ -164,6 +164,7 @@ def count_session(session) -> None:
 	db_broker_queryset = players_queryset.filter(role='broker')
 
 	db_producers, db_brokers = [], []
+
 	for player in db_producers_queryset:
 		db_producers.append(player.producer)
 	for player in db_broker_queryset:
@@ -248,10 +249,10 @@ def finish_by_player_count(session_instance):
 	player_count = session_instance.player.count()
 	players_finished_turn = session_instance.player.filter(ended_turn=True).count()
 	if player_count == players_finished_turn:
-		if session.turn_phase == 'negotiation':
-			change_phase(session, 'transaction')
+		if session_instance.turn_phase == 'negotiation':
+			change_phase(session_instance, 'transaction')
 		else:
-			count_session(session)
+			count_session(session_instance)
 	return
 
 
