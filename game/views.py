@@ -52,6 +52,18 @@ class SessionAdminViewSet(ModelViewSet):
 		# requests.get('http://0.0.0.0:8000/start/')
 		return Response({'detail': 'Session started'}, status=status.HTTP_200_OK)
 
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['phase'],
+			properties={
+				'phase': openapi.Schema(
+					type=openapi.TYPE_STRING,
+					description='Этап игры. Варианты: "negotiation" или "transaction"'
+				),
+			},
+		),
+		responses={ '200': 'Success', '400': 'Wrong phase!' })
 	@action(methods=['PUT'], detail=True, url_path='set-turn-phase', permission_classes=[])
 	def set_turn_phase(self, request, pk):
 		"""
@@ -59,6 +71,8 @@ class SessionAdminViewSet(ModelViewSet):
 		"""
 		session = SessionModel.objects.get(pk=pk)
 		phase = request.data.get('phase')
+		if not phase in ['negotiation', 'transaction']:
+			return Response({'detail': 'Wrong phase!'}, status=status.HTTP_400_BAD_REQUEST)
 		change_phase(session, phase)
 		return Response({'detail': 'Phase updated'}, status=status.HTTP_200_OK)
 
@@ -169,9 +183,11 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'finished':
-			players = PlayerModel.objects.filter(session_id=session_instance.id).order_by('-balance')
+			players = PlayerModel.objects\
+				.filter(session_id=session_instance.id) \
+				.order_by('is_bankrupt', '-balance')
 			return Response(
-				serializers.PlayerSerializer(players, many=True),
+				serializers.PlayerResultSerializer(players, many=True).data,
 				status=status.HTTP_200_OK
 			)
 		return Response(

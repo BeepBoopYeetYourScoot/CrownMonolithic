@@ -118,6 +118,22 @@ class PlayerSerializer(serializers.ModelSerializer):
 			return 'not created'
 
 
+class PlayerResultSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = PlayerModel
+		fields = [
+			'id',
+			'nickname',
+			'role',
+			'role_name',
+			'balance',
+			'is_bankrupt',
+			'status',
+			'position',
+		]
+		read_only = '__all__'
+
+
 class ProducerSerializer(serializers.ModelSerializer):
 	transactions = serializers.SerializerMethodField('get_producer_transactions')
 
