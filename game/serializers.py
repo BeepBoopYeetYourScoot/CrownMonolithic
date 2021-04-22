@@ -144,7 +144,9 @@ class ProducerSerializer(serializers.ModelSerializer):
 
 
 class BrokerSerializer(serializers.ModelSerializer):
-	transactions = serializers.SerializerMethodField('get_broker_transactions')
+	transactions = serializers.SerializerMethodField('get_transactions')
+	previous_turn_transactions = serializers\
+		.SerializerMethodField('get_previous_transactions')
 
 	class Meta:
 		model = BrokerModel
@@ -152,27 +154,27 @@ class BrokerSerializer(serializers.ModelSerializer):
 		read_only = '__all__'
 
 	# FIXME: optimize me, please
-	def get_broker_transactions(self, instance):
-		transactions = {}
-		transactions['active_transactions'] = TransactionSerializer(
+	def get_transactions(self, instance):
+		return TransactionSerializer(
 			instance.transaction.filter(
 				broker=instance.id,
 				turn=instance.player.session.current_turn,
-				status='active'
 			),
 			many=True
 		).data
-		for turn in range(1, instance.player.session.current_turn + 1):
-			transactions[turn] = TransactionSerializer(
-				instance.transaction.filter(
-					broker=instance.id,
-					turn=turn,
-					status__in=['accepted', 'denied']
-				),
-				many=True
-			).data
 
-		return transactions
+	def get_previous_transactions(self, instance):
+		current_turn = instance.player.session.current_turn
+		if current_turn < 2:
+			return []
+
+		return TransactionSerializer(
+			instance.transaction.filter(
+				broker=instance.id,
+				turn=current_turn - 1,
+			),
+			many=True
+		).data
 
 
 class TransactionSerializer(serializers.ModelSerializer):
