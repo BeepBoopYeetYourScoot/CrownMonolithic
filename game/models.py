@@ -114,7 +114,8 @@ def generate_code():
 
 
 class BrokerModel(models.Model):
-	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE, related_name='broker')
+	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
+								  related_name='broker')
 	code = models.PositiveSmallIntegerField()
 
 	class Meta:
@@ -127,12 +128,45 @@ class BrokerModel(models.Model):
 		else:
 			super().__str__()
 
-	def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+	def save(self, force_insert=False, force_update=False, using=None,
+			 update_fields=None):
 		"""
 		Генерирует новый код при пересчёте
 		"""
 		self.code = generate_code()
 		super().save()
+
+
+class BalanceRequest(models.Model):
+	TRANSACTION_STATUSES = (
+		('active', 'Запрос на рассмотрении'),
+		('accepted', 'Запрос согласован'),
+		('denied', 'Запрос отклонен')
+	)
+
+	producer = models.ForeignKey(ProducerModel,
+								 on_delete=models.CASCADE,
+								 related_name='received_balance_requests',
+								 default=0)
+	broker = models.ForeignKey(BrokerModel,
+							   on_delete=models.CASCADE,
+							   related_name='sent_balance_requests',
+							   default=0)
+	status = models.CharField(max_length=10, choices=TRANSACTION_STATUSES,
+							  default='active')
+	turn = models.PositiveSmallIntegerField()
+
+	class Meta:
+		verbose_name = 'Запрос баланса'
+		verbose_name_plural = 'Запросы баланса'
+		ordering = ['-id']
+
+	def __str__(self):
+		if self.producer is not None and self.broker is not None:
+			return f'Запрос баланса в сессии ' \
+				   f'{self.producer.player.session.name} ' \
+				   f'от {self.broker.player.nickname} ' \
+				   f'к {self.producer.player.nickname}'
 
 
 class TransactionModel(models.Model):
@@ -188,31 +222,3 @@ class BalanceDetail(models.Model):
 	purchase_blanks = models.IntegerField(default=0)
 	blanks = models.IntegerField(default=0)
 	crown = models.IntegerField(default=0)
-
-
-class BalanceRequest(models.Model):
-	TRANSACTION_STATUSES = (
-		('active', 'Запрос на рассмотрении'),
-		('accepted', 'Запрос согласован'),
-		('denied', 'Запрос отклонен')
-	)
-
-	producer = models.ForeignKey(PlayerModel, on_delete=models.CASCADE,
-								 related_name='received_balance_requests')
-	broker = models.ForeignKey(PlayerModel, on_delete=models.CASCADE,
-							   related_name='sent_balance_requests')
-	status = models.CharField(max_length=10, choices=TRANSACTION_STATUSES,
-							  default='active')
-	turn = models.PositiveSmallIntegerField()
-
-	class Meta:
-		verbose_name = 'Запрос баланса'
-		verbose_name_plural = 'Запросы баланса'
-		ordering = ['-id']
-
-	def __str__(self):
-		if self.producer is not None and self.broker is not None:
-			return f'Запрос баланса в сессии ' \
-				   f'{self.producer.session.name} ' \
-				   f'от {self.broker.nickname} ' \
-				   f'к {self.producer.nickname}'

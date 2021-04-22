@@ -352,7 +352,7 @@ def create_balance_request(producer, broker) -> None:
 	BalanceRequest.objects.create(
 		producer=producer,
 		broker=broker,
-		turn=broker.session.current_turn
+		turn=broker.player.session.current_turn
 	)
 	return
 
@@ -366,7 +366,7 @@ def accept_balance_request(producer, broker) -> None:
 	requests = BalanceRequest.objects.filter(
 		producer=producer,
 		broker=broker,
-		turn=broker.session.current_turn,
+		turn=broker.player.session.current_turn,
 		status='active'
 	)
 	# Цикл для ситуации, в которой маклер несколько раз отправил заявку
@@ -385,7 +385,7 @@ def deny_balance_request(producer, broker) -> None:
 	requests = BalanceRequest.objects.filter(
 		producer=producer,
 		broker=broker,
-		turn=broker.session.current_turn,
+		turn=broker.player.session.current_turn,
 		status='active'
 	)
 	# Цикл для ситуации, в которой маклер несколько раз отправил заявку

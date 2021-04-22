@@ -251,8 +251,18 @@ class ProducerBalanceDetailSerializer(serializers.ModelSerializer):
 
 
 class BalanceRequestSerializer(serializers.ModelSerializer):
+	broker_nickname = serializers.CharField()
+	broker_role_name = serializers.CharField()
 	class Meta:
 		model = BalanceRequest
 		exclude = [
+			'id',
 			'turn'
 		]
+
+
+class ProducerBalanceSerializer(serializers.Serializer):
+	id = serializers.IntegerField()
+	nickname = serializers.CharField()
+	role_name = serializers.CharField()
+	balance = serializers.IntegerField()

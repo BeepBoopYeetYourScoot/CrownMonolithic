@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+from django.db.models import Subquery, F
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
@@ -7,7 +7,7 @@ from .models import SessionModel, PlayerModel, ProducerModel, TransactionModel, 
 	BrokerModel, BalanceRequest
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from . import serializers
-from .permissions import IsInSession, IsThePlayer
+from .permissions import IsThePlayer
 from rest_framework.decorators import action
 
 from authorization.services.create_player import create_player
@@ -247,7 +247,7 @@ class ProducerViewSet(ModelViewSet):
 			send_trade(producer, broker, terms)
 			return Response(
 				{
-					'detail': f'Отправлена сделка от {producer.player.nickname}'\
+					'detail': f'Отправлена сделка от {producer.player.nickname}'
 							  f'к {broker.player.nickname}',
 					'Условия': terms
 				},
@@ -291,11 +291,13 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Получает список не рассмотренных запросов
 		"""
-		player = request.player
-		request_instances = player.received_balance_requests.filter(
-			turn=player.session.current_turn, status='active')
-		serializer = serializers.BalanceRequestSerializer(request_instances,
-														  many=True)
+		requests = request.player.producer.received_balance_requests\
+			.filter(turn=request.player.session.current_turn, status='active')\
+			.annotate(
+				broker_role_name=F('broker__player__role_name')
+			)
+		print(requests.query)
+		serializer = serializers.BalanceRequestSerializer(requests, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -316,8 +318,13 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Подтверждает показ баланса маклеру
 		"""
-		broker = get_object_or_404(PlayerModel, pk=request.data.get('broker'))
-		accept_balance_request(request.player, broker)
+		try:
+			broker = BrokerModel.objects.get(player=request.data.get('broker'))
+		except BrokerModel.DoesNotExist:
+			return Response({'detail': 'No such broker'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		accept_balance_request(request.player.producer, broker)
 		return Response(status=status.HTTP_200_OK)
 
 
@@ -338,8 +345,13 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отклоняет запрос на показ баланса
 		"""
-		broker = get_object_or_404(PlayerModel, pk=request.data.get('broker'))
-		deny_balance_request(request.player, broker)
+		try:
+			broker = BrokerModel.objects.get(player=request.data.get('broker'))
+		except BrokerModel.DoesNotExist:
+			return Response({'detail': 'No such broker'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		deny_balance_request(request.player.producer, broker)
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -392,19 +404,33 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Запрашивает баланс производителя
 		"""
-		producer_id = request.data.get('producer', None)
-		if not producer_id:
-			return Response({'detail': 'Empty producer field!'},
-							status=status.HTTP_400_BAD_REQUEST)
-
 		try:
-			producer = PlayerModel.objects.get(pk=producer_id)
-		except PlayerModel.DoesNotExist:
-			return Responce({'detail': 'No such producer!'},
+			producer = ProducerModel.objects\
+				.get(player=request.data.get('producer'))
+		except ProducerModel.DoesNotExist:
+			return Responce({'detail': 'No such producer'},
 							status=status.HTTP_400_BAD_REQUEST)
 
-		create_balance_request(producer, request.player)
+		create_balance_request(producer, request.player.broker)
 		return Response(status=status.HTTP_201_CREATED)
+
+	@swagger_auto_schema(responses={ '200': 'OK' })
+	@action(methods=['get'], detail=False, url_path='producer-balances',
+			url_name='get_accepted_balance_requests')
+	def get_accepted_balance_requests(self, request):
+		requests = BalanceRequest.objects.filter(
+			broker=request.player.broker,
+			status='accepted',
+			turn=request.player.session.current_turn
+		).values('producer')
+		# TODO: проверить не лучше ли через annotate
+		producer_players = PlayerModel.objects.filter(
+			session=request.player.session,
+			producer__in=Subquery(requests)
+		).only('role_name', 'nickname', 'balance')
+
+		serializer = serializers.ProducerBalanceSerializer(producer_players, many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
