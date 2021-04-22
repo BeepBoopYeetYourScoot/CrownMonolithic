@@ -14,6 +14,7 @@ class BrokerNormal(AbstractBroker):
 		self.is_bankrupt = False
 		self.status = 'OK'
 		self.balance_detail = None
+		self.proceeds = 0
 
 	fixed_costs = 1000
 
@@ -41,7 +42,8 @@ class BrokerNormal(AbstractBroker):
 
 	def count_proceeds(self, market_price) -> float:
 		"""Считает выручку от продажи заготовок"""
-		return self.shipment * market_price
+		self.proceeds = self.shipment * market_price
+		return self.proceeds
 
 	def count_turn_balance_detail(self, crown_balance=0) -> None:
 		"""
@@ -51,8 +53,8 @@ class BrokerNormal(AbstractBroker):
 			'start_turn_balance': self.balance,
 
 			'purchase_blanks': self.count_purchase_costs(),
-			'logistics': 1500 if self.shipment > 0 else 0,
-			'blanks': self.shipment,
+			'logistics': 1000 if self.shipment > 0 else 0,
+			'blanks': self.proceeds,
 			'fine': 0,
 			'crown': crown_balance,
 
