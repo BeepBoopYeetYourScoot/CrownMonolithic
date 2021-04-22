@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, TransactionModel, BalanceDetail
+from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel,\
+	TransactionModel, BalanceDetail, BalanceRequest
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 
@@ -117,3 +118,5 @@ admin.site.register(ProducerModel)
 admin.site.register(BrokerModel)
 admin.site.register(TransactionModel)
 admin.site.register(BalanceDetail)
+admin.site.register(BalanceRequest)
+
