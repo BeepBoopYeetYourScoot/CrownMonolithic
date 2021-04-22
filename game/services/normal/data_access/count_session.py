@@ -57,6 +57,7 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 
 	detail_serializer.save()
 	db_producer_model_instance.save()
+	db_producer_model_instance.producer.save()
 	return
 
 
