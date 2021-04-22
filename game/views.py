@@ -1,24 +1,26 @@
-from django.shortcuts import get_object_or_404
+from django.db.models import Subquery, F
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from .models import SessionModel, PlayerModel, ProducerModel, TransactionModel, \
-	BrokerModel
+	BrokerModel, BalanceRequest
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from . import serializers
-from .permissions import IsInSession, IsThePlayer
+from .permissions import IsThePlayer
 from rest_framework.decorators import action
 
 from authorization.services.create_player import create_player
 from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
-from game.services.normal.data_access.count_session import change_phase, start_session, \
-	count_session, produce_billets, send_trade, cancel_trade, end_turn, cancel_end_turn, \
-	accept_transaction, deny_transaction, finish_by_player_count
+from game.services.normal.data_access.count_session import change_phase, \
+	start_session, count_session, produce_billets, send_trade, cancel_trade,\
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
+	finish_by_player_count, create_balance_request, accept_balance_request, \
+	deny_balance_request
 
-from django.template import loader
-from django.http import HttpResponse
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 import requests
 
@@ -29,7 +31,6 @@ import requests
 # detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
 
 BASE_URL = 'http://0.0.0.0:8000/change/'
-
 
 class SessionAdminViewSet(ModelViewSet):
 	"""
@@ -46,7 +47,7 @@ class SessionAdminViewSet(ModelViewSet):
 		"""
 		session = SessionModel.objects.get(pk=pk)
 		start_session(session)
-		requests.get('http://0.0.0.0:8000/start/')
+		# requests.get('http://0.0.0.0:8000/start/')
 		return Response({'detail': 'Session started'}, status=status.HTTP_200_OK)
 
 	@action(methods=['PUT'], detail=True, url_path='set-turn-phase', permission_classes=[])
@@ -120,7 +121,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			nickname = request.data.get('nickname')
 			player = create_player(session, nickname)
 
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(PlayerWithTokenSerializer(player).data,
 							status=status.HTTP_201_CREATED)
 		except SessionModel.DoesNotExist:
@@ -139,7 +140,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 			session_instance = SessionModel.objects.get(pk=pk)
 			assert request.player.session.id == session_instance.id, "Вы не в той сессии"
 			request.player.delete()
-			requests.get(BASE_URL)
+			# requests.get(BASE_URL)
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		except SessionModel.DoesNotExist:
 			return Response({'detail': 'No such session'},
@@ -169,14 +170,14 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 class PlayerViewSet(viewsets.ModelViewSet):
 	queryset = PlayerModel.objects.all()
 	serializer_class = serializers.PlayerSerializer
+	permission_classes = [IsPlayer]
 
-	@action(methods=['GET'], permission_classes=[IsPlayer], detail=False)
+	@action(methods=['GET'], detail=False)
 	def me(self, request):
 		return Response(self.get_serializer(request.player).data,
 						status=status.HTTP_200_OK)
 
-	@action(methods=['put'], permission_classes=[IsPlayer], detail=False,
-			url_path='end-turn')
+	@action(methods=['put'], detail=False, url_path='end-turn')
 	def end_turn(self, request):
 		"""
 		Завершает ход
@@ -189,8 +190,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
 
-	@action(methods=['put'], permission_classes=[IsPlayer], detail=False,
-			url_path='cancel-end-turn')
+	@action(methods=['put'], detail=False, url_path='cancel-end-turn')
 	def cancel_end_turn(self, request):
 		"""
 		Завершает ход
@@ -202,7 +202,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 		cancel_end_turn(request.player)
 		return Response(status=status.HTTP_200_OK)
 
-	@action(methods=['get'], permission_classes=[IsPlayer], detail=False)
+	@action(methods=['get'], detail=False)
 	def balance_detail(self, request):
 		if not request.player.session.status == 'started':
 			return Response({'detail': 'Session is not started or finished!'}, status=status.HTTP_400_BAD_REQUEST)
@@ -216,10 +216,8 @@ class PlayerViewSet(viewsets.ModelViewSet):
 class ProducerViewSet(ModelViewSet):
 	queryset = ProducerModel.objects.all()
 	serializer_class = serializers.ProducerSerializer
+	permission_classes = [IsPlayer]
 
-	# permission_classes = [IsInSession]
-
-	# permission_classes = [IsThePlayer]
 	@action(methods=['POST'], detail=True)
 	def produce(self, request, pk):
 		"""
@@ -249,7 +247,8 @@ class ProducerViewSet(ModelViewSet):
 			send_trade(producer, broker, terms)
 			return Response(
 				{
-					'detail': f'Отправлена сделка от {producer.player.nickname} к {broker.player.nickname}',
+					'detail': f'Отправлена сделка от {producer.player.nickname}'
+							  f'к {broker.player.nickname}',
 					'Условия': terms
 				},
 				status=status.HTTP_201_CREATED
@@ -276,55 +275,89 @@ class ProducerViewSet(ModelViewSet):
 			status=status.HTTP_204_NO_CONTENT
 		)
 
-	# @action(detail=True)
-	# def me(self, request, pk):
+	# FIXME: For what?
+	#
+	# @action(detail=True, url_path='balance-history')
+	# def balance_history(self, request, pk):
 	# 	"""
-	# 	Отправляет полные данные о текущем игроке
+	# 	Показывает детализацию баланса за игру
 	# 	"""
-	# 	player = PlayerModel.objects.get(producer=pk)
-	# 	return Response(
-	# 		serializers.FullProducerInfoSerializer(player).data,
-	# 		status=status.HTTP_200_OK
-	# 	)
+	# 	pass
 
-	@action(detail=True, url_path='balance-history')
-	def balance_history(self, request, pk):
+	@swagger_auto_schema(responses={ '200': 'OK' })
+	@action(methods=['get'], detail=False, url_path='received-balance-requests',
+			url_name='received_balance_requests_list')
+	def get_balance_requests_list(self, request):
 		"""
-		Показывает детализацию баланса за игру
+		Получает список не рассмотренных запросов
 		"""
-		pass
+		requests = request.player.producer.received_balance_requests\
+			.filter(turn=request.player.session.current_turn, status='active')\
+			.annotate(
+				broker_role_name=F('broker__player__role_name')
+			)
+		print(requests.query)
+		serializer = serializers.BalanceRequestSerializer(requests, many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
-	@action(methods=[''], detail=True, url_path='accept-show-balace')
-	def accept_show_balance(self, request, pk):
+
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['broker'],
+			properties={
+				'broker': openapi.Schema(
+					type=openapi.TYPE_INTEGER,
+					description='Player id'
+				),
+			},
+		),
+		responses={ '200': 'Success', '404': 'Bad broker' })
+	@action(methods=['put'], detail=False, url_path='accept-balance-request')
+	def accept_show_balance(self, request):
 		"""
 		Подтверждает показ баланса маклеру
 		"""
-		pass
+		try:
+			broker = BrokerModel.objects.get(player=request.data.get('broker'))
+		except BrokerModel.DoesNotExist:
+			return Response({'detail': 'No such broker'},
+							status=status.HTTP_400_BAD_REQUEST)
 
-	@action(methods=[''], detail=True, url_path='deny-show-balance')
-	def deny_show_balance(self, request, pk):
+		accept_balance_request(request.player.producer, broker)
+		return Response(status=status.HTTP_200_OK)
+
+
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['broker'],
+			properties={
+				'broker': openapi.Schema(
+					type=openapi.TYPE_INTEGER,
+					description='Player id'
+				),
+			},
+		),
+		responses={ '204': 'Success', '404': 'Bad broker' })
+	@action(methods=['put'], detail=False, url_path='deny-balance-request')
+	def deny_show_balance(self, request):
 		"""
 		Отклоняет запрос на показ баланса
 		"""
-		pass
+		try:
+			broker = BrokerModel.objects.get(player=request.data.get('broker'))
+		except BrokerModel.DoesNotExist:
+			return Response({'detail': 'No such broker'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		deny_balance_request(request.player.producer, broker)
+		return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BrokerViewSet(ModelViewSet):
 	queryset = BrokerModel.objects.all()
 	serializer_class = serializers.BrokerSerializer
-
-	# permission_classes = [IsInSession]
-
-	# @action(detail=True)
-	# def me(self, request, pk):
-	# 	"""
-	# 	Отправляет полные данные о текущем игроке
-	# 	"""
-	# 	broker = PlayerModel.objects.get(broker_id=pk)
-	# 	return Response(
-	# 		serializers.PlayerSerializer(broker).data,
-	# 		status=status.HTTP_200_OK
-	# 	)
 
 	@action(methods=['put'], detail=True, url_path='accept')
 	def accept_transaction(self, request, pk):
@@ -356,12 +389,48 @@ class BrokerViewSet(ModelViewSet):
 			status=status.HTTP_200_OK
 		)
 
-	@action(methods=['get'], detail=True, url_path='request-balance')
-	def request_balance(self, request, pk):
+	@swagger_auto_schema(
+		request_body=openapi.Schema(
+			type=openapi.TYPE_OBJECT,
+			required=['producer'],
+			properties={
+				'producer': openapi.Schema(type=openapi.TYPE_INTEGER),
+			},
+		),
+		responses={ '201': 'Created', '400': 'Error' }
+	)
+	@action(methods=['post'], detail=False, url_path='request-balance')
+	def request_balance(self, request):
 		"""
 		Запрашивает баланс производителя
 		"""
-		pass
+		try:
+			producer = ProducerModel.objects\
+				.get(player=request.data.get('producer'))
+		except ProducerModel.DoesNotExist:
+			return Responce({'detail': 'No such producer'},
+							status=status.HTTP_400_BAD_REQUEST)
+
+		create_balance_request(producer, request.player.broker)
+		return Response(status=status.HTTP_201_CREATED)
+
+	@swagger_auto_schema(responses={ '200': 'OK' })
+	@action(methods=['get'], detail=False, url_path='producer-balances',
+			url_name='get_accepted_balance_requests')
+	def get_accepted_balance_requests(self, request):
+		requests = BalanceRequest.objects.filter(
+			broker=request.player.broker,
+			status='accepted',
+			turn=request.player.session.current_turn
+		).values('producer')
+		# TODO: проверить не лучше ли через annotate
+		producer_players = PlayerModel.objects.filter(
+			session=request.player.session,
+			producer__in=Subquery(requests)
+		).only('role_name', 'nickname', 'balance')
+
+		serializer = serializers.ProducerBalanceSerializer(producer_players, many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,

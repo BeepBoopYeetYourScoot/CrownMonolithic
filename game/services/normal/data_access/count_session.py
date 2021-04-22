@@ -1,11 +1,14 @@
-from game.models import PlayerModel, TransactionModel, BalanceDetail
+from game.models import PlayerModel, TransactionModel, BalanceDetail,\
+	BalanceRequest
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
-from game.serializers import ProducerBalanceDetailSerializer, BrokerBalanceDetailSerializer
+from game.serializers import ProducerBalanceDetailSerializer,\
+	BrokerBalanceDetailSerializer
+
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -340,3 +343,55 @@ def deny_transaction(producer, broker):
 	)
 	transaction.status = 'denied'
 	transaction.save()
+
+
+def create_balance_request(producer, broker) -> None:
+	"""
+	Создает запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	"""
+	BalanceRequest.objects.create(
+		producer=producer,
+		broker=broker,
+		turn=broker.player.session.current_turn
+	)
+	return
+
+
+def accept_balance_request(producer, broker) -> None:
+	"""
+	Согласует запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	"""
+	requests = BalanceRequest.objects.filter(
+		producer=producer,
+		broker=broker,
+		turn=broker.player.session.current_turn,
+		status='active'
+	)
+	# Цикл для ситуации, в которой маклер несколько раз отправил заявку
+	for request in requests:
+		request.status = 'accepted'
+		request.save()
+	return
+
+
+def deny_balance_request(producer, broker) -> None:
+	"""
+	Отклоняет запрос на просмотр баланса
+	:param producer: PlayerModel
+	:param broker: PlayerModel
+	"""
+	requests = BalanceRequest.objects.filter(
+		producer=producer,
+		broker=broker,
+		turn=broker.player.session.current_turn,
+		status='active'
+	)
+	# Цикл для ситуации, в которой маклер несколько раз отправил заявку
+	for request in requests:
+		request.status = 'denied'
+		request.save()
+	return
