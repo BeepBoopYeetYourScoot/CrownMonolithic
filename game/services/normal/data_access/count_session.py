@@ -43,21 +43,19 @@ def save_producer(producer_class_instance, db_producer_model_instance) -> None:
 	"""
 	Сохраняет результат пересчёта производителя в БД
 	"""
-	player = db_producer_model_instance.player
-	player.balance = producer_class_instance.balance
-	player.is_bankrupt = producer_class_instance.is_bankrupt
-	db_producer_model_instance.billets_produced = producer_class_instance.billets_produced
-	db_producer_model_instance.billets_stored = producer_class_instance.billets_stored
-	player.status = producer_class_instance.status
+	db_producer_model_instance.balance = producer_class_instance.balance
+	db_producer_model_instance.is_bankrupt = producer_class_instance.is_bankrupt
+	db_producer_model_instance.producer.billets_produced = producer_class_instance.billets_produced
+	db_producer_model_instance.producer.billets_stored = producer_class_instance.billets_stored
+	db_producer_model_instance.status = producer_class_instance.status
 
-	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_producer_model_instance)
 	detail_serializer = ProducerBalanceDetailSerializer(
 		balance_detail_instance, data=producer_class_instance.balance_detail)
 	if not detail_serializer.is_valid():
 		print('Smth happened with detail serializer, 54')
 
 	detail_serializer.save()
-	player.save()
 	db_producer_model_instance.save()
 	return
 
@@ -66,19 +64,18 @@ def save_broker(broker_class_instance, db_broker_model_instance) -> None:
 	"""
 	Сохраняет результат пересчёта маклера в БД.
 	"""
-	player = db_broker_model_instance.player
-	player.balance = broker_class_instance.balance
-	player.is_bankrupt = broker_class_instance.is_bankrupt
-	player.status = broker_class_instance.status
+	db_broker_model_instance.balance = broker_class_instance.balance
+	db_broker_model_instance.is_bankrupt = broker_class_instance.is_bankrupt
+	db_broker_model_instance.status = broker_class_instance.status
 
-	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=player)
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_model_instance)
 	detail_serializer = BrokerBalanceDetailSerializer(
 		balance_detail_instance, data=broker_class_instance.balance_detail)
 	if not detail_serializer.is_valid():
 		print('Smth happened with detail serializer, 74')
 
 	detail_serializer.save()
-	player.save()
+	db_broker_model_instance.save()
 	return
 
 
