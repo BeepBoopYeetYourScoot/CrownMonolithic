@@ -170,9 +170,11 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'finished':
-			players = PlayerModel.objects.filter(session_id=session_instance.id).order_by('-balance')
+			players = PlayerModel.objects\
+				.filter(session_id=session_instance.id) \
+				.order_by('is_bankrupt', '-balance')
 			return Response(
-				serializers.PlayerSerializer(players, many=True),
+				serializers.PlayerResultSerializer(players, many=True).data,
 				status=status.HTTP_200_OK
 			)
 		return Response(
