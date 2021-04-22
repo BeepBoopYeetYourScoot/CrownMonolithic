@@ -3,8 +3,7 @@ from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel,\
 	TransactionModel, BalanceDetail, BalanceRequest
 from django.utils.safestring import mark_safe
 from django.urls import reverse
-
-from .services.normal.data_access.count_session import count_session
+from .services.normal.data_access import count_session
 
 
 @admin.register(PlayerModel)
@@ -74,7 +73,8 @@ class SessionAdmin(admin.ModelAdmin):
 	)
 
 	def start_session(self, request, queryset):
-		queryset.update(status='started')
+		for session in queryset:
+			count_session.start_session(session)
 
 	# FIXME меняет статусы, но не пропускает сессию через функцию
 	def finish_session(self, request, queryset):
@@ -83,7 +83,7 @@ class SessionAdmin(admin.ModelAdmin):
 	def finish_turn(self, request, queryset):
 		for session in queryset:
 			session.turn_phase = 'transaction'
-			count_session(session)
+			count_session.count_session(session)
 
 	start_session.short_description = 'Начать сесиию'
 	finish_session.short_description = 'Завершить сессию'
