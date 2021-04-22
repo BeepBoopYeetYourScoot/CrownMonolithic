@@ -156,7 +156,7 @@ def count_session(session) -> None:
 	"""
 	session_instance = session
 	assert session_instance.pk is not None
-	assert session_instance.status == 'started', 'Session hasn\'t not started'
+	assert session_instance.status == 'started', 'Session has not started'
 	assert session_instance.turn_phase == 'transaction', 'Session is in the wrong phase'
 
 	players_queryset = session_instance.player.all()
@@ -171,7 +171,7 @@ def count_session(session) -> None:
 		db_brokers.append(player.broker)
 
 	db_transactions = session_instance.transaction.filter(
-		turn=session_instance.current_turn, status='accept')
+		turn=session_instance.current_turn, status='accepted')
 
 	producers, brokers, transactions = [], [], []
 
@@ -223,7 +223,8 @@ def count_session(session) -> None:
 	for player in session_instance.player.all():
 		player.ended_turn = False
 		player.save()
-
+	if session_instance.current_turn == session_instance.turn_count:
+		session_instance.status = 'finished'
 	session_instance.save()
 
 

@@ -87,7 +87,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		Выдаёт список с созданными администратором сессиями
 		"""
-		queryset = self.queryset.filter(status='initializer')
+		queryset = self.queryset.filter(status='initialized')
 		serializer = serializers.LobbySerializer(queryset, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
