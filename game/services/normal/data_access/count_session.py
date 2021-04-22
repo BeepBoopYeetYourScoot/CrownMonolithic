@@ -237,7 +237,7 @@ def finish_session(session_instance):
 	session_instance.status = 'finished'
 	players = session_instance.player.all().order_by('-balance')
 	for place, player in enumerate(players):
-		player.position = place
+		player.position = place + 1
 		player.save()
 	session_instance.save()
 	return

@@ -98,6 +98,7 @@ class SessionAdminViewSet(ModelViewSet):
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'started':
 			finish_session(session_instance)
+			requests.get('http://0.0.0.0:8000/start/')
 			return Response({'detail': 'Session finished'}, status=status.HTTP_200_OK)
 		return Response({'detail': 'Session has wrong status'}, status=status.HTTP_400_BAD_REQUEST)
 
