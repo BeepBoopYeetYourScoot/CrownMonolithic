@@ -78,7 +78,8 @@ class SessionAdmin(admin.ModelAdmin):
 
 	# FIXME меняет статусы, но не пропускает сессию через функцию
 	def finish_session(self, request, queryset):
-		queryset.update(status='finished')
+		for session in queryset:
+			count_session.finish_session(session)
 
 	def finish_turn(self, request, queryset):
 		for session in queryset:

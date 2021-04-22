@@ -14,10 +14,10 @@ from authorization.services.create_player import create_player
 from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
-	start_session, count_session, produce_billets, send_trade, cancel_trade,\
-	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
+	start_session, count_session, produce_billets, send_trade, cancel_trade, \
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction, \
 	finish_by_player_count, create_balance_request, accept_balance_request, \
-	deny_balance_request
+	deny_balance_request, finish_session
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -32,12 +32,14 @@ import requests
 
 BASE_URL = 'http://0.0.0.0:8000/change/'
 
+
 class SessionAdminViewSet(ModelViewSet):
 	"""
 	Обрабатывает сессии для администраторов
 	"""
 	queryset = SessionModel.objects.all()
 	serializer_class = serializers.SessionAdminSerializer
+
 	# permission_classes = [IsAdminUser]
 
 	@action(methods=['GET'], detail=True, url_path='start-session', permission_classes=[])
@@ -73,6 +75,17 @@ class SessionAdminViewSet(ModelViewSet):
 			return Response({'detail': 'Session is already finished!'}, status=status.HTTP_400_BAD_REQUEST)
 		count_session(session_instance)
 		return Response({'detail': 'Session counted'}, status=status.HTTP_200_OK)
+
+	@action(methods=['get'], detail=True, url_path='finish-session', permission_classes=[])
+	def finish_session(self, request, pk):
+		"""
+		Завершает сессию
+		"""
+		session_instance = SessionModel.objects.get(pk=pk)
+		if session_instance.status == 'started':
+			finish_session(session_instance)
+			return Response({'detail': 'Session finished'}, status=status.HTTP_200_OK)
+		return Response({'detail': 'Session has wrong status'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
@@ -284,22 +297,21 @@ class ProducerViewSet(ModelViewSet):
 	# 	"""
 	# 	pass
 
-	@swagger_auto_schema(responses={ '200': 'OK' })
+	@swagger_auto_schema(responses={'200': 'OK'})
 	@action(methods=['get'], detail=False, url_path='received-balance-requests',
 			url_name='received_balance_requests_list')
 	def get_balance_requests_list(self, request):
 		"""
 		Получает список не рассмотренных запросов
 		"""
-		requests = request.player.producer.received_balance_requests\
-			.filter(turn=request.player.session.current_turn, status='active')\
+		requests = request.player.producer.received_balance_requests \
+			.filter(turn=request.player.session.current_turn, status='active') \
 			.annotate(
-				broker_role_name=F('broker__player__role_name')
-			)
+			broker_role_name=F('broker__player__role_name')
+		)
 		print(requests.query)
 		serializer = serializers.BalanceRequestSerializer(requests, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 	@swagger_auto_schema(
 		request_body=openapi.Schema(
@@ -312,7 +324,7 @@ class ProducerViewSet(ModelViewSet):
 				),
 			},
 		),
-		responses={ '200': 'Success', '404': 'Bad broker' })
+		responses={'200': 'Success', '404': 'Bad broker'})
 	@action(methods=['put'], detail=False, url_path='accept-balance-request')
 	def accept_show_balance(self, request):
 		"""
@@ -327,7 +339,6 @@ class ProducerViewSet(ModelViewSet):
 		accept_balance_request(request.player.producer, broker)
 		return Response(status=status.HTTP_200_OK)
 
-
 	@swagger_auto_schema(
 		request_body=openapi.Schema(
 			type=openapi.TYPE_OBJECT,
@@ -339,7 +350,7 @@ class ProducerViewSet(ModelViewSet):
 				),
 			},
 		),
-		responses={ '204': 'Success', '404': 'Bad broker' })
+		responses={'204': 'Success', '404': 'Bad broker'})
 	@action(methods=['put'], detail=False, url_path='deny-balance-request')
 	def deny_show_balance(self, request):
 		"""
@@ -397,7 +408,7 @@ class BrokerViewSet(ModelViewSet):
 				'producer': openapi.Schema(type=openapi.TYPE_INTEGER),
 			},
 		),
-		responses={ '201': 'Created', '400': 'Error' }
+		responses={'201': 'Created', '400': 'Error'}
 	)
 	@action(methods=['post'], detail=False, url_path='request-balance')
 	def request_balance(self, request):
@@ -405,7 +416,7 @@ class BrokerViewSet(ModelViewSet):
 		Запрашивает баланс производителя
 		"""
 		try:
-			producer = ProducerModel.objects\
+			producer = ProducerModel.objects \
 				.get(player=request.data.get('producer'))
 		except ProducerModel.DoesNotExist:
 			return Responce({'detail': 'No such producer'},
@@ -414,7 +425,7 @@ class BrokerViewSet(ModelViewSet):
 		create_balance_request(producer, request.player.broker)
 		return Response(status=status.HTTP_201_CREATED)
 
-	@swagger_auto_schema(responses={ '200': 'OK' })
+	@swagger_auto_schema(responses={'200': 'OK'})
 	@action(methods=['get'], detail=False, url_path='producer-balances',
 			url_name='get_accepted_balance_requests')
 	def get_accepted_balance_requests(self, request):
