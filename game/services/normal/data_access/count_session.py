@@ -1,4 +1,6 @@
-from game.models import PlayerModel, TransactionModel, BalanceDetail,\
+import random
+
+from game.models import PlayerModel, TransactionModel, BalanceDetail, \
 	BalanceRequest
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
@@ -6,9 +8,8 @@ from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
-from game.serializers import ProducerBalanceDetailSerializer,\
+from game.serializers import ProducerBalanceDetailSerializer, \
 	BrokerBalanceDetailSerializer
-
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -19,64 +20,66 @@ PLAYER_NUMBER_PRESET = (
 )
 
 
-def generate_producer(db_producer_model_instance, producer_class) -> ProducerNormal:
+def generate_producer(db_producer_player, producer_class) -> ProducerNormal:
 	"""
 	Генерирует экземпляр класса производителя и возвращает экземпляр
 	"""
-	producer = producer_class(db_producer_model_instance.player.balance)
-	producer.id = db_producer_model_instance.id
-	producer.billets_produced = db_producer_model_instance.billets_produced
-	producer.billets_stored = db_producer_model_instance.billets_stored
+	producer = producer_class(db_producer_player.balance)
+	producer.id = db_producer_player.producer.id
+	producer.billets_produced = db_producer_player.producer.billets_produced
+	producer.billets_stored = db_producer_player.producer.billets_stored
 	return producer
 
 
-def generate_broker(db_broker_model_instance, broker_class) -> BrokerNormal:
+def generate_broker(db_broker_player, broker_class) -> BrokerNormal:
 	"""
 	Генерирует экземпляр класса маклера и возвращает экземпляр
 	"""
-	broker = broker_class(db_broker_model_instance.player.balance)
-	broker.id = db_broker_model_instance.id
+	broker = broker_class(db_broker_player.balance)
+	broker.id = db_broker_player.broker.id
 	return broker
 
 
-def save_producer(producer_class_instance, db_producer_model_instance) -> None:
+def save_producer(producer_class_instance, db_producer_player) -> None:
 	"""
 	Сохраняет результат пересчёта производителя в БД
 	"""
-	db_producer_model_instance.balance = producer_class_instance.balance
-	db_producer_model_instance.is_bankrupt = producer_class_instance.is_bankrupt
-	db_producer_model_instance.producer.billets_produced = producer_class_instance.billets_produced
-	db_producer_model_instance.producer.billets_stored = producer_class_instance.billets_stored
-	db_producer_model_instance.status = producer_class_instance.status
+	db_producer_player.balance = producer_class_instance.balance
+	db_producer_player.is_bankrupt = producer_class_instance.is_bankrupt
+	db_producer_player.producer.billets_produced = producer_class_instance.billets_produced
+	db_producer_player.producer.billets_stored = producer_class_instance.billets_stored
+	db_producer_player.status = producer_class_instance.status
 
-	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_producer_model_instance)
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_producer_player)
 	detail_serializer = ProducerBalanceDetailSerializer(
 		balance_detail_instance, data=producer_class_instance.balance_detail)
 	if not detail_serializer.is_valid():
 		print('Smth happened with detail serializer, 54')
 
 	detail_serializer.save()
-	db_producer_model_instance.save()
-	db_producer_model_instance.producer.save()
+	db_producer_player.save()
+	db_producer_player.producer.save()
 	return
 
 
-def save_broker(broker_class_instance, db_broker_model_instance) -> None:
+def save_broker(broker_class_instance, db_broker_player) -> None:
 	"""
 	Сохраняет результат пересчёта маклера в БД.
 	"""
-	db_broker_model_instance.balance = broker_class_instance.balance
-	db_broker_model_instance.is_bankrupt = broker_class_instance.is_bankrupt
-	db_broker_model_instance.status = broker_class_instance.status
+	db_broker_player.balance = broker_class_instance.balance
+	db_broker_player.is_bankrupt = broker_class_instance.is_bankrupt
+	db_broker_player.status = broker_class_instance.status
 
-	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_model_instance)
+	balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_player)
 	detail_serializer = BrokerBalanceDetailSerializer(
 		balance_detail_instance, data=broker_class_instance.balance_detail)
 	if not detail_serializer.is_valid():
 		print('Smth happened with detail serializer, 74')
-
 	detail_serializer.save()
-	db_broker_model_instance.save()
+
+	db_broker_player.broker.code = random.randint(111111, 999999)
+	db_broker_player.save()
+	db_broker_player.broker.save()
 	return
 
 
@@ -167,9 +170,9 @@ def count_session(session) -> None:
 	db_producers, db_brokers = [], []
 
 	for player in db_producers_queryset:
-		db_producers.append(player.producer)
+		db_producers.append(player)
 	for player in db_broker_queryset:
-		db_brokers.append(player.broker)
+		db_brokers.append(player)
 
 	db_transactions = session_instance.transaction.filter(
 		turn=session_instance.current_turn, status='accepted')
@@ -207,13 +210,13 @@ def count_session(session) -> None:
 
 	for producer in producers:
 		for db_producer in db_producers:
-			if db_producer.id == producer.id:
+			if db_producer.producer.id == producer.id:
 				producer.set_end_turn_balance()
 				save_producer(producer, db_producer)
 
 	for broker in brokers:
 		for db_broker in db_brokers:
-			if db_broker.id == broker.id:
+			if db_broker.broker.id == broker.id:
 				broker.set_end_turn_balance()
 				save_broker(broker, db_broker)
 
@@ -397,3 +400,10 @@ def deny_balance_request(producer, broker) -> None:
 		request.status = 'denied'
 		request.save()
 	return
+
+
+def generate_code() -> int:
+	"""
+	Генерирует шестизначный код маклера
+	"""
+	return random.randint(111111, 999999)
