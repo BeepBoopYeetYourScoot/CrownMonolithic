@@ -269,8 +269,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
 		# code = request.data.get('code')
 		# if broker.code == code:
 		terms = request.data.get('terms')
@@ -296,8 +296,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отменяет сделку с маклером
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
 		cancel_trade(producer, broker)
 		return Response(
 			{
@@ -384,8 +384,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Одобряет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
 		accept_transaction(producer, broker)
 		return Response(
 			{
@@ -399,8 +399,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Отклоняет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
 		deny_transaction(producer, broker)
 		return Response(
 			{
@@ -428,7 +428,7 @@ class BrokerViewSet(ModelViewSet):
 			producer = ProducerModel.objects \
 				.get(player=request.data.get('producer'))
 		except ProducerModel.DoesNotExist:
-			return Responce({'detail': 'No such producer'},
+			return Response({'detail': 'No such producer'},
 							status=status.HTTP_400_BAD_REQUEST)
 
 		create_balance_request(producer, request.player.broker)
