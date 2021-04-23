@@ -63,7 +63,7 @@ class SessionAdminViewSet(ModelViewSet):
 				),
 			},
 		),
-		responses={ '200': 'Success', '400': 'Wrong phase!' })
+		responses={'200': 'Success', '400': 'Wrong phase!'})
 	@action(methods=['PUT'], detail=True, url_path='set-turn-phase', permission_classes=[])
 	def set_turn_phase(self, request, pk):
 		"""
@@ -184,7 +184,7 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'finished':
-			players = PlayerModel.objects\
+			players = PlayerModel.objects \
 				.filter(session_id=session_instance.id) \
 				.order_by('is_bankrupt', '-balance')
 			return Response(
@@ -264,31 +264,32 @@ class ProducerViewSet(ModelViewSet):
 			status=status.HTTP_200_OK
 		)
 
-	@action(methods=['POST'], detail=True)
+	@action(methods=['POST'], detail=True, permission_classes=[])
 	def trade(self, request, pk):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
 		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
 		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
-		code = request.data.get('code')
-		if broker.code == code:
-			terms = request.data.get('terms')
-			send_trade(producer, broker, terms)
-			return Response(
-				{
-					'detail': f'Отправлена сделка от {producer.player.nickname}'
-							  f'к {broker.player.nickname}',
-					'Условия': terms
-				},
-				status=status.HTTP_201_CREATED
-			)
+		# code = request.data.get('code')
+		# if broker.code == code:
+		terms = request.data.get('terms')
+		send_trade(producer, broker, terms)
 		return Response(
 			{
-				'detail': 'Неверный код маклера!'
+				'detail': f'Отправлена сделка от {producer.player.nickname}'
+						  f'к {broker.player.nickname}',
+				'Условия': terms
 			},
-			status=status.HTTP_406_NOT_ACCEPTABLE
+			status=status.HTTP_201_CREATED
 		)
+
+	# return Response(
+	# 	{
+	# 		'detail': 'Неверный код маклера!'
+	# 	},
+	# 	status=status.HTTP_406_NOT_ACCEPTABLE
+	# )
 
 	@action(methods=['delete'], detail=True, url_path='cancel-trade')
 	def cancel_trade(self, request, pk):
@@ -304,15 +305,6 @@ class ProducerViewSet(ModelViewSet):
 			},
 			status=status.HTTP_204_NO_CONTENT
 		)
-
-	# FIXME: For what?
-	#
-	# @action(detail=True, url_path='balance-history')
-	# def balance_history(self, request, pk):
-	# 	"""
-	# 	Показывает детализацию баланса за игру
-	# 	"""
-	# 	pass
 
 	@swagger_auto_schema(responses={'200': 'OK'})
 	@action(methods=['get'], detail=False, url_path='received-balance-requests',

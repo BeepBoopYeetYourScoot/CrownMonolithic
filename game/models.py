@@ -1,5 +1,4 @@
 import random
-
 from django.db import models
 from game.services.transporting_cost import get_transporting_cost
 from authorization.models import PlayerBaseModel
@@ -110,13 +109,6 @@ class ProducerModel(models.Model):
 			super().__str__()
 
 
-def generate_code():
-	"""
-	Генерирует шестизначный код маклера
-	"""
-	return random.randint(111111, 999999)
-
-
 class BrokerModel(models.Model):
 	player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
 								  related_name='broker')
@@ -134,10 +126,10 @@ class BrokerModel(models.Model):
 
 	def save(self, force_insert=False, force_update=False, using=None,
 			 update_fields=None):
-		"""
-		Генерирует новый код при пересчёте
-		"""
-		self.code = generate_code()
+		if not self.pk:
+			self.code = random.randint(111111, 999999)
+			super().save()
+		self.code = random.randint(111111, 999999)
 		super().save()
 
 
@@ -186,7 +178,7 @@ class TransactionModel(models.Model):
 	quantity = models.PositiveSmallIntegerField(default=0)
 	price = models.PositiveSmallIntegerField(default=0)
 	transporting_cost = models.PositiveSmallIntegerField(default=10, editable=False)
-	turn = models.PositiveSmallIntegerField(editable=False)
+	turn = models.PositiveSmallIntegerField(editable=True)
 	status = models.CharField(max_length=15, choices=TRANSACTION_STATUSES, default='active')
 
 	class Meta:
