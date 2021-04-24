@@ -52,6 +52,8 @@ class SessionAdminSerializer(serializers.ModelSerializer):
 			'turn_phase',
 			'player_count',
 			'players_finished_turn',
+			'allow_show_balance',
+			'allow_show_transaction_sum'
 		]
 		read_only = [
 			'__all__',
@@ -137,12 +139,13 @@ class PlayerResultSerializer(serializers.ModelSerializer):
 
 class ProducerSerializer(serializers.ModelSerializer):
 	transactions = serializers.SerializerMethodField('get_producer_transactions')
+	nickname = serializers.CharField(source='player.nickname')
 
 	class Meta:
 		model = ProducerModel
 		fields = [
 			'id',
-			'player',
+			'nickname',
 			'billets_produced',
 			'billets_stored',
 			'transactions'
