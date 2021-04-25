@@ -10,6 +10,7 @@ from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
 from game.serializers import ProducerBalanceDetailSerializer, \
 	BrokerBalanceDetailSerializer
+from CrownMonolithic.websockets import services as ws_services
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
@@ -139,6 +140,7 @@ def start_session(session):
 	session_instance.current_turn = 1
 	session_instance.status = 'started'
 	session_instance.save()
+	ws_services.notify_start(session_instance.id)
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -151,6 +153,7 @@ def change_phase(session_instance, phase: str) -> None:
 	session_instance.turn_phase = phase
 	session_instance.save()
 	[cancel_end_turn(player) for player in session_instance.player.all()]
+	ws_services.notify_change_phase(session_instance.id, phase)
 	return
 
 
@@ -230,6 +233,7 @@ def count_session(session) -> None:
 	if session_instance.current_turn == session_instance.turn_count:
 		session_instance.status = 'finished'
 	session_instance.save()
+	ws_services.notify_next_turn(session_instance.id)
 
 
 def finish_session(session_instance):
@@ -243,26 +247,13 @@ def finish_session(session_instance):
 		player.position = place + 1
 		player.save()
 	session_instance.save()
+	ws_services.notify_finish(session_instance.id)
 	return
 
 
 # def return_started_status(session_instance):
 # 	assert session_instance.pk is not None
 # 	return session_instance.status
-
-
-def finish_by_player_count(session_instance):
-	"""
-	Автоматически завершает ход, если все нажали 'Закончить ход'
-	"""
-	player_count = session_instance.player.count()
-	players_finished_turn = session_instance.player.filter(ended_turn=True).count()
-	if player_count == players_finished_turn:
-		if session_instance.turn_phase == 'negotiation':
-			change_phase(session_instance, 'transaction')
-		else:
-			count_session(session_instance)
-	return
 
 
 def create_player(session_instance, nickname):

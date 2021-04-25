@@ -1,0 +1,38 @@
+{
+  "actions": [
+    {
+      "description": "action начала сессии",
+      "response": {
+        "action": "start_session"
+      }
+    },
+    {
+      "description": "action смены фазы хода",
+      "response": {
+        "action": "change_phase",
+        "phase": "На какую фазу переключился ход"
+      }
+    },
+    {
+      "type": "get_timer",
+      "description": "Возвращает action обновления таймера у пользователя",
+      "response": {
+        "action": "update_timer",
+        "time": "Время для текущего хода"
+      }
+    },
+    {
+      "type": "finish_turn",
+      "description": "Возвращает action пересчёта хода, если все игроки в сессии завершили ход",
+      "response": {
+        "action": "next_turn"
+      }
+    },
+    {
+      "description": "action завершения сессии",
+      "response": {
+        "action": "finish_session"
+      }
+    }
+  ]
+}
