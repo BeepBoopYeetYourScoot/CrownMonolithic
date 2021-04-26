@@ -105,6 +105,10 @@ from services import get_timer, notifications
 class SessionConsumer(WebsocketConsumer):
     def connect(self):
         self.session_id = self.scope['url_route']['kwargs']['session_id']
+        # TODO Тестировать
+        self.user_id = self.scope['player.id']
+        self.channel_name = f'user_{self.user_id}'
+        self.session_group_name = f'session_{self.session_id}'
         # TODO: Добавить логику проверки наличия сессии
         self.group_name = f'session_{self.session_id}'
         async_to_sync(self.channel_layer.group_add)(
