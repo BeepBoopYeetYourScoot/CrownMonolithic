@@ -15,8 +15,7 @@ from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
 	start_session, count_session, produce_billets, send_trade, cancel_trade, \
-	end_turn, cancel_end_turn, accept_transaction, deny_transaction, \
-	finish_by_player_count, create_balance_request, accept_balance_request, \
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction, create_balance_request, accept_balance_request, \
 	deny_balance_request, finish_session
 
 from drf_yasg.utils import swagger_auto_schema
@@ -30,7 +29,7 @@ import requests
 # url_name - НАЗВАНИЕ-МЕТОДА
 # detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
 
-BASE_URL = 'http://0.0.0.0:8000/change/'
+# BASE_URL = 'http://0.0.0.0:8000/change/'
 
 
 class SessionAdminViewSet(ModelViewSet):
@@ -217,7 +216,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
 				'detail': 'Session is not started!'
 			}, status=status.HTTP_400_BAD_REQUEST)
 		end_turn(request.player)
-		finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
 
 	@action(methods=['put'], detail=False, url_path='cancel-end-turn')
