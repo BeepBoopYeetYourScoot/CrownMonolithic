@@ -25,7 +25,7 @@ class TimerConsumer(AsyncWebsocketConsumer):
     async def disconnect(self):
         await self.channel_layer.discard(self.session_group_name, self.channel_name)
 
-    def receive(self, text_data):
+    async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         request_type = text_data_json['type']
 
@@ -100,61 +100,61 @@ class TimerConsumer(AsyncWebsocketConsumer):
         pass
 
 
-    class SessionConsumer(WebsocketConsumer):
-        def connect(self):
-            self.room_group_name = 'all'
-            async_to_sync(self.channel_layer.group_add)(
+class SessionConsumer(WebsocketConsumer):
+    def connect(self):
+        self.room_group_name = 'all'
+        async_to_sync(self.channel_layer.group_add)(
+            self.room_group_name,
+            self.channel_name
+        )
+        self.accept()
+
+    def disconnect(self, close_code):
+        async_to_sync(self.channel_layer.group_discard)(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+
+        # Send message to room group
+        if text_data_json['type'] == 'join_player':
+            async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
-                self.channel_name
+                {
+                    'type': 'join_player',
+                    'time': True
+                }
             )
-            self.accept()
-
-        def disconnect(self, close_code):
-            async_to_sync(self.channel_layer.group_discard)(
+        elif text_data_json['type'] == 'exit_player':
+            async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
-                self.channel_name
+                {
+                    "type": "exit_player",
+                    'exit_player': True,
+                }
+            )
+        elif text_data_json['type'] == 'start_game':
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                {
+                    "type": "start_game",
+                }
             )
 
-        def receive(self, text_data):
-            text_data_json = json.loads(text_data)
+    def join_player(self, event):
+        self.send(text_data=json.dumps({
+            'action': 'join_player',
+            'data': True}))
 
-            # Send message to room group
-            if text_data_json['type'] == 'join_player':
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {
-                        'type': 'join_player',
-                        'time': True
-                    }
-                )
-            elif text_data_json['type'] == 'exit_player':
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {
-                        "type": "exit_player",
-                        'exit_player': True,
-                    }
-                )
-            elif text_data_json['type'] == 'start_game':
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {
-                        "type": "start_game",
-                    }
-                )
+    def exit_player(self, event):
+        self.send(text_data=json.dumps({
+            'action': 'exit_player',
+            'data': True}))
 
-        def join_player(self, event):
-            self.send(text_data=json.dumps({
-                'action': 'join_player',
-                'data': True}))
-
-        def exit_player(self, event):
-            self.send(text_data=json.dumps({
-                'action': 'exit_player',
-                'data': True}))
-
-        def start_game(self, event):
-            self.send(text_data=json.dumps({
-                'start_game': 'true',
-                'action': 'start_game'
-            }))
+    def start_game(self, event):
+        self.send(text_data=json.dumps({
+            'start_game': 'true',
+            'action': 'start_game'
+        }))

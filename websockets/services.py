@@ -1,7 +1,7 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from ..game.models import SessionModel
-from ..game.services.normal.data_access import count_session
+from game.models import SessionModel
+from game.services.normal.data_access import count_session
 
 
 def get_timer(session_id):
