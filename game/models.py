@@ -43,7 +43,7 @@ class SessionModel(models.Model):
     turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True,
                                   verbose_name="Фаза хода")
     allow_show_balance = models.BooleanField(default=False, verbose_name='Разрешить производителям показывать баланс')
-    allow_show_transacton_sum = models.BooleanField(default=False, verbose_name="Показывать маклерам сумму транзакций")
+    allow_show_transaction_sum = models.BooleanField(default=False, verbose_name="Показывать маклерам сумму транзакций")
 
     class Meta:
         verbose_name = 'Сессия'
@@ -223,10 +223,19 @@ class BalanceDetail(models.Model):
 
 
 class TurnTime(models.Model):
+
+    TIMER_STATUS = (
+        ('initialized', 'Инициализирован'),
+        ('negotiation', 'Фаза переговоров'),
+        ('transaction', 'Фаза заключения сделок'),
+        ('finished', 'Ход завершён')
+    )
+
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, verbose_name="Сессия", related_name='turn_time')
     turn = models.IntegerField(default=0, verbose_name='Номер хода')
-    negotiation_time = models.IntegerField(default=15, verbose_name='Время на этап производства')
-    transaction_time = models.IntegerField(default=5, verbose_name="Время на этап заключения сделок")
+    negotiation_time = models.IntegerField(default=1, verbose_name='Время на этап производства')
+    transaction_time = models.IntegerField(default=1, verbose_name="Время на этап заключения сделок")
+    status = models.CharField(choices=TIMER_STATUS, default='created', max_length=20)
 
     def __str__(self):
         return f'Ход {self.turn} сессии {self.session}'

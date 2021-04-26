@@ -15,9 +15,9 @@ from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
 	start_session, count_session, produce_billets, send_trade, cancel_trade, \
-	end_turn, cancel_end_turn, accept_transaction, deny_transaction, \
-	create_balance_request, accept_balance_request, deny_balance_request,\
-	finish_session
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
+	create_balance_request, accept_balance_request, \
+	deny_balance_request, finish_session
 
 from websockets.services import finish_turn_by_players
 
@@ -32,7 +32,7 @@ import requests
 # url_name - НАЗВАНИЕ-МЕТОДА
 # detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
 
-BASE_URL = 'http://0.0.0.0:8000/change/'
+# BASE_URL = 'http://0.0.0.0:8000/change/'
 
 
 class SessionAdminViewSet(ModelViewSet):

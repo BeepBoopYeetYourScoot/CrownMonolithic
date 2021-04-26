@@ -1,7 +1,7 @@
 import requests
 from django.contrib import admin
-from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel,\
-	TransactionModel, BalanceDetail, BalanceRequest
+from .models import SessionModel, PlayerModel, ProducerModel, BrokerModel, \
+	TransactionModel, BalanceDetail, BalanceRequest, TurnTime
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 from .services.normal.data_access import count_session
@@ -76,19 +76,19 @@ class SessionAdmin(admin.ModelAdmin):
 	def start_session(self, request, queryset):
 		for session in queryset:
 			count_session.start_session(session)
-			requests.get('http://0.0.0.0:8000/start/')
+			# requests.get('http://0.0.0.0:8000/start/')
 
 	# FIXME меняет статусы, но не пропускает сессию через функцию
 	def finish_session(self, request, queryset):
 		for session in queryset:
 			count_session.finish_session(session)
-			requests.get('http://0.0.0.0:8000/start/')
+			# requests.get('http://0.0.0.0:8000/start/')
 
 	def finish_turn(self, request, queryset):
 		for session in queryset:
 			session.turn_phase = 'transaction'
 			count_session.count_session(session)
-			requests.get('http://0.0.0.0:8000/start/')
+			# requests.get('http://0.0.0.0:8000/start/')
 
 	start_session.short_description = 'Начать сесиию'
 	finish_session.short_description = 'Завершить сессию'
@@ -124,4 +124,5 @@ admin.site.register(BrokerModel)
 admin.site.register(TransactionModel)
 admin.site.register(BalanceDetail)
 admin.site.register(BalanceRequest)
+admin.site.register(TurnTime)
 
