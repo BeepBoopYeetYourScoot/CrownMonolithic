@@ -149,38 +149,30 @@ def notify_transaction(sender, **kwargs):
     """
     transaction_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'session_{transaction_instance.session.id}',
-        {
-            'type': 'change_player'
-        }
-    )
+    async_to_sync(channel_layer.group_send)(f'session_{transaction_instance.session.id}', {'type': 'change_player'})
 
 
-def finish_turn_by_players(session_id):
-    """
-    Заканчивает ход в сессии, если все игроки завершили ход
-    """
-    # FIXME При выполнении условия отправлять всему каналу сигнал на пересчёт
-    #  Не вписывается в общий роутинг на потребителя
-    session_instance = models.SessionModel.objects.get(id=session_id)
-    players_finished = session_instance.player.filter(ended_turn=True).count()
-    players_in_session = session_instance.player.count()
-    channel_layer = get_channel_layer()
-    if players_finished == players_in_session:
-        if session_instance.phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)(
-                f'session_{session_id}',
-                {
-                    'type': 'change_phase',
-                    'phase': 'transaction'
-                }
-            )
-        elif session_instance.phase == 'transaction':
-            count_session.count_session(session_instance)
-            async_to_sync(channel_layer.group_send)(
-                f'session_{session_id}',
-                {
-                    'type': 'next_turn'
-                }
-            )
+# FIXME Пока лучше сделать без завершения хода
+# def finish_turn_by_players(session_id):
+#     """
+#     Заканчивает ход в сессии, если все игроки завершили ход
+#     """
+#     # FIXME При выполнении условия отправлять всему каналу сигнал на пересчёт
+#     #  Не вписывается в общий роутинг на потребителя
+#     session_instance = models.SessionModel.objects.get(id=session_id)
+#     players_finished = session_instance.player.filter(ended_turn=True).count()
+#     players_in_session = session_instance.player.count()
+#     channel_layer = get_channel_layer()
+#     if players_finished == players_in_session:
+#         if session_instance.phase == 'negotiation':
+#             async_to_sync(channel_layer.group_send)(
+#                 f'session_{session_id}',
+#                 {
+#                     'type': 'change_phase',
+#                     'phase': 'transaction'
+#                 }
+#             )
+#         elif session_instance.phase == 'transaction':
+#             count_session.count_session(session_instance)
+#             async_to_sync(channel_layer.group_send)(f'session_{session_id}',
+#                                                     {'type': 'next_turn'})

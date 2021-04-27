@@ -1,7 +1,6 @@
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 import json
-from . import services as ws_services
 
 """
 Пример нормально сконструированного Консумера
@@ -120,7 +119,7 @@ class SessionConsumer(WebsocketConsumer):
             self.channel_name
         )
 
-    def receive(self, text_data):
+    async def receive(self, text_data):
         text_data_json = json.loads(text_data)
 
         # Send message to room group
@@ -230,6 +229,7 @@ class LobbyConsumer(WebsocketConsumer):
         elif text_data_json['type'] == 'start_game':
             async_to_sync(self.channel_layer.group_send)(
                 self.group_name,
+
                 {
                     "type": "start_game",
                 }
@@ -260,4 +260,5 @@ class LobbyConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps({
             'action': 'start_game',
             'start_game': 'true'
+
         }))
