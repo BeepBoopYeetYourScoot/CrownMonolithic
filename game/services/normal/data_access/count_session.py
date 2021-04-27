@@ -140,7 +140,7 @@ def start_session(session):
 	session_instance.current_turn = 1
 	session_instance.status = 'started'
 	session_instance.save()
-	ws_services.notify_start(session_instance.id)
+	# ws_services.notify_start_session(session_instance.id)
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -153,7 +153,7 @@ def change_phase(session_instance, phase: str) -> None:
 	session_instance.turn_phase = phase
 	session_instance.save()
 	[cancel_end_turn(player) for player in session_instance.player.all()]
-	ws_services.notify_change_phase(session_instance.id, phase)
+	# ws_services.notify_players(session_instance.id, phase)
 	return
 
 
@@ -233,7 +233,7 @@ def count_session(session) -> None:
 	if session_instance.current_turn == session_instance.turn_count:
 		session_instance.status = 'finished'
 	session_instance.save()
-	ws_services.notify_next_turn(session_instance.id)
+	# ws_services.notify_players(session_instance.id)
 
 
 def finish_session(session_instance):
@@ -247,7 +247,7 @@ def finish_session(session_instance):
 		player.position = place + 1
 		player.save()
 	session_instance.save()
-	ws_services.notify_finish(session_instance.id)
+	# ws_services.notify_finish(session_instance.id)
 	return
 
 

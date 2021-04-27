@@ -20,23 +20,69 @@ def notify_send_timer(sender, **kwargs):
     """
     turn = kwargs['instance']
 
-    if turn.status != 'initialized' and turn.status != 'finished':
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(f'session_{turn.session.id}', {'type': 'send_timer'})
+    # if turn.status != 'initialized' and turn.status != 'finished':
+        # channel_layer = get_channel_layer()
+        # async_to_sync(channel_layer.group_send)(
+        #     f'session_{turn.session.id}',
+        #     {
+        #         'type': 'send_timer',
+        #         'time' :
+        #     }
+        # )
 
 
 @receiver([signals.post_save], sender=models.SessionModel)
-def notify_session(sender, **kwargs):
+def notify_start_session(sender, **kwargs):
     """
     Уведомляет пользователей о старте сессии
     """
     session_instance = kwargs['instance']
+    print(type(session_instance), dir(session_instance))
     if session_instance.status == 'started':
         channel_layer = get_channel_layer()
-        if session_instance.current_turn == 1 and session_instance.phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)(f'session_{session_instance.id}', {'type': 'start_game'})
+        if session_instance.current_turn == 1\
+                and session_instance.turn_phase == 'negotiation':
+            async_to_sync(channel_layer.group_send)(
+                f'session_{session_instance.id}',
+                {
+                    'type': 'start_game'
+                }
+            )
         else:
-            async_to_sync(channel_layer.group_send)(f'session_{session_instance.id}', {'type': 'change_player'})
+            async_to_sync(channel_layer.group_send)(
+                f'session_{session_instance.id}',
+                {
+                    'type': 'change_player'
+                }
+            )
+
+
+@receiver([signals.post_save], sender=models.PlayerModel)
+def notify_join_player(sender, **kwargs):
+    """
+    Уведомляет о присоединении игрока к сессии
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'find_session',
+        {
+            'type': 'join_player'
+        }
+    )
+
+
+@receiver([signals.post_delete], sender=models.PlayerModel)
+def notify_exit_player(sender, **kwargs):
+    """
+    Уведомляет о выходе игрока из сессии
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'find_session',
+        {
+            'type': 'exit_player'
+        }
+    )
 
 
 @receiver([signals.post_save], sender=models.ProducerModel)
@@ -46,7 +92,12 @@ def notify_producer(sender, **kwargs):
     """
     producer_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(f'session_{producer_instance.player.session.id}', {'type': 'change_player'})
+    async_to_sync(channel_layer.group_send)(
+        f'session_{producer_instance.player.session.id}',
+        {
+            'type': 'change_player'
+        }
+    )
 
 
 @receiver([signals.post_save], sender=models.BrokerModel)
@@ -56,7 +107,12 @@ def notify_broker(sender, **kwargs):
     """
     broker_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(f'session_{broker_instance.player.session.id}', {'type': 'change_player'})
+    async_to_sync(channel_layer.group_send)(
+        f'session_{broker_instance.player.session.id}',
+        {
+            'type': 'change_player'
+        }
+    )
 
 
 @receiver([signals.post_save], sender=models.PlayerModel)
@@ -66,7 +122,12 @@ def notify_players(sender, **kwargs):
     """
     player_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(f'session_{player_instance.session.id}', {'type': 'change_player'})
+    async_to_sync(channel_layer.group_send)(
+        f'session_{player_instance.session.id}',
+        {
+            'type': 'change_player'
+        }
+    )
 
 
 @receiver([signals.post_init], sender=models.TransactionModel)
@@ -76,7 +137,12 @@ def notify_transaction(sender, **kwargs):
     """
     transaction_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(f'session_{transaction_instance.session.id}', {'type': 'change_player'})
+    async_to_sync(channel_layer.group_send)(
+        f'session_{transaction_instance.session.id}',
+        {
+            'type': 'change_player'
+        }
+    )
 
 
 def finish_turn_by_players(session_id):
@@ -91,9 +157,18 @@ def finish_turn_by_players(session_id):
     channel_layer = get_channel_layer()
     if players_finished == players_in_session:
         if session_instance.phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)(f'session_{session_id}',
-                                                    {'type': 'change_phase', 'phase': 'transaction'})
+            async_to_sync(channel_layer.group_send)(
+                f'session_{session_id}',
+                {
+                    'type': 'change_phase',
+                    'phase': 'transaction'
+                }
+            )
         elif session_instance.phase == 'transaction':
             count_session.count_session(session_instance)
-            async_to_sync(channel_layer.group_send)(f'session_{session_id}',
-                                                    {'type': 'next_turn'})
+            async_to_sync(channel_layer.group_send)(
+                f'session_{session_id}',
+                {
+                    'type': 'next_turn'
+                }
+            )
