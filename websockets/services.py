@@ -112,21 +112,6 @@ def notify_producer(sender, **kwargs):
     )
 
 
-@receiver([signals.post_save], sender=models.BrokerModel)
-def notify_broker(sender, **kwargs):
-    """
-    Уведомляет маклера при пересчёте
-    """
-    broker_instance = kwargs['instance']
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'session_{broker_instance.player.session.id}',
-        {
-            'type': 'change_player'
-        }
-    )
-
-
 @receiver([signals.post_save], sender=models.PlayerModel)
 def notify_players(sender, **kwargs):
     """
