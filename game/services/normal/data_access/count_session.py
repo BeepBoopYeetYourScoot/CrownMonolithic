@@ -10,7 +10,7 @@ from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
 from game.serializers import ProducerBalanceDetailSerializer, \
 	BrokerBalanceDetailSerializer
-from CrownMonolithic.websockets import services as ws_services
+from websockets import services as ws_services
 
 PLAYER_NUMBER_PRESET = (
 	('12-14', '12-14 Игроков'),
