@@ -100,7 +100,7 @@ class SessionAdminViewSet(ModelViewSet):
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'started':
 			finish_session(session_instance)
-			requests.get('http://0.0.0.0:8000/start/')
+			# requests.get('http://0.0.0.0:8000/start/')
 			return Response({'detail': 'Session finished'}, status=status.HTTP_200_OK)
 		return Response({'detail': 'Session has wrong status'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -470,8 +470,7 @@ class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
 		filtered_transactions = transactions.filter(
 			turn=request.player.session.current_turn
 		)
-		serializer = serializers.TransactionSerializer(filtered_transactions,
-													   many=True)
+		serializer = serializers.TransactionSerializer(filtered_transactions, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 	@action(methods=['get'], detail=False)
@@ -484,6 +483,5 @@ class TransactionViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
 		filtered_transactions = transactions.filter(
 			turn=request.player.session.current_turn - 1
 		)
-		serializer = serializers.TransactionSerializer(filtered_transactions,
-													   many=True)
+		serializer = serializers.TransactionSerializer(filtered_transactions, many=True)
 		return Response(serializer.data, status=status.HTTP_200_OK)

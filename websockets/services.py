@@ -69,7 +69,7 @@ def notify_change_session_list(sender, **kwargs):
     )
 
 
-@receiver([signals.post_save], sender=models.PlayerModel)
+@receiver([signals.post_init], sender=models.PlayerModel)
 def notify_join_player(sender, **kwargs):
     """
     Уведомляет о присоединении игрока к сессии
