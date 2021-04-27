@@ -13,22 +13,23 @@ from django.db.models import signals
 """
 
 
-@receiver([signals.post_save], sender=models.TurnTime)
+@receiver([signals.post_save], sender=models.SessionModel)
 def notify_send_timer(sender, **kwargs):
     """
     Возвращает время на текущий ход
     """
-    turn = kwargs['instance']
+    session_instance = kwargs['instance']
 
-    # if turn.status != 'initialized' and turn.status != 'finished':
-        # channel_layer = get_channel_layer()
-        # async_to_sync(channel_layer.group_send)(
-        #     f'session_{turn.session.id}',
-        #     {
-        #         'type': 'send_timer',
-        #         'time' :
-        #     }
-        # )
+    if session_instance.status == 'started':
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'session_{session_instance.id}',
+            {
+                'type': 'send_timer',
+                'time': session_instance.turn.negotiation_time if session_instance.turn_phase == 'negotiation'
+                else session_instance.turn.transaction_time
+            }
+        )
 
 
 @receiver([signals.post_save], sender=models.SessionModel)
@@ -39,14 +40,12 @@ def notify_start_session(sender, **kwargs):
     session_instance = kwargs['instance']
     if session_instance.status == 'started':
         channel_layer = get_channel_layer()
-        if session_instance.current_turn == 1 and \
-                session_instance.turn_phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)(
-                'find_session',
-                {
-                    'type': 'start_game'
-                }
-            )
+        if session_instance.current_turn == 1 and session_instance.turn_phase == 'negotiation':
+            async_to_sync(channel_layer.group_send)('find_session',
+                                                    {
+                                                        'type': 'start_game'
+                                                    }
+                                                    )
         else:
             async_to_sync(channel_layer.group_send)(
                 f'session_{session_instance.id}',

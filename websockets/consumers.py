@@ -114,7 +114,6 @@ class SessionConsumer(WebsocketConsumer):
         self.accept()
         # self.send_time(<time>)
 
-
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
@@ -182,6 +181,7 @@ class LobbyConsumer(WebsocketConsumer):
     """
     Консьюмер до старта сессии
     """
+
     def connect(self):
         """
         Соединение к группе 'find_session'
