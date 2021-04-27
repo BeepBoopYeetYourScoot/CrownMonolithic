@@ -37,13 +37,12 @@ def notify_start_session(sender, **kwargs):
     Уведомляет пользователей о старте сессии
     """
     session_instance = kwargs['instance']
-    print(type(session_instance), dir(session_instance))
     if session_instance.status == 'started':
         channel_layer = get_channel_layer()
-        if session_instance.current_turn == 1\
-                and session_instance.turn_phase == 'negotiation':
+        if session_instance.current_turn == 1 and \
+                session_instance.turn_phase == 'negotiation':
             async_to_sync(channel_layer.group_send)(
-                f'session_{session_instance.id}',
+                'find_session',
                 {
                     'type': 'start_game'
                 }
@@ -55,6 +54,20 @@ def notify_start_session(sender, **kwargs):
                     'type': 'change_player'
                 }
             )
+
+
+@receiver([signals.post_save], sender=models.SessionModel)
+def notify_change_session_list(sender, **kwargs):
+    """
+    Уведомляет об обновлении списка сессий
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'find_session',
+        {
+            'type': 'join_player'
+        }
+    )
 
 
 @receiver([signals.post_save], sender=models.PlayerModel)
