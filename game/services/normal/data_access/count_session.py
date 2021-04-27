@@ -58,7 +58,7 @@ def save_producer(producer_class_instance, db_producer_player) -> None:
     if not detail_serializer.is_valid():
         print('Smth happened with detail serializer, 54')
 
-    detail_serializer.save()
+    # detail_serializer.save()
     db_producer_player.save()
     db_producer_player.producer.save()
     return
@@ -77,7 +77,7 @@ def save_broker(broker_class_instance, db_broker_player) -> None:
         balance_detail_instance, data=broker_class_instance.balance_detail)
     if not detail_serializer.is_valid():
         print('Smth happened with detail serializer, 74')
-    detail_serializer.save()
+    # detail_serializer.save()
 
     db_broker_player.broker.code = random.randint(111111, 999999)
     db_broker_player.save()
@@ -143,7 +143,9 @@ def start_session(session):
     session_instance.current_turn = 1
     session_instance.status = 'started'
     session_instance.save()
-    timer(session_instance)
+
+    print(f'Запущен таймер {timer(session_instance).getName()}')
+    timer(session_instance).start()
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -157,7 +159,9 @@ def change_phase(session_instance, phase: str) -> None:
     session_instance.save()
     print(f'Фаза хода изменена на {session_instance.turn_phase}')
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    timer(session_instance)
+
+    print(f'Запущен таймер для фазы {session_instance.turn_phase}')
+    timer(session_instance).start()
 
 
 def count_session(session) -> None:
@@ -227,17 +231,23 @@ def count_session(session) -> None:
                 save_broker(broker, db_broker)
 
     session_instance.crown_balance = crown_balance_updated
+    if session_instance.current_turn == session_instance.turn_count:
+        session_instance.status = 'finished'
+        print(f'Сессия {session_instance.name} завершилась')
+        session_instance.save()
+        return
     session_instance.current_turn += 1
     session_instance.turn_phase = 'negotiation'
 
     for player in session_instance.player.all():
         player.ended_turn = False
         player.save()
-    if session_instance.current_turn == session_instance.turn_count:
-        session_instance.status = 'finished'
+
     session_instance.save()
-    print(f'Ход {session_instance.current_turn - 1} посчитан')
-    timer(session_instance)
+    print(
+        f'Ход {session_instance.current_turn - 1} был посчитан. '
+        f'Переключение на фазу {session_instance.turn_phase}')
+    timer(session_instance).start()
 
 
 def finish_session(session_instance):
@@ -252,11 +262,6 @@ def finish_session(session_instance):
         player.save()
     session_instance.save()
     return
-
-
-# def return_started_status(session_instance):
-# 	assert session_instance.pk is not None
-# 	return session_instance.status
 
 
 def create_player(session_instance, nickname):
@@ -407,19 +412,16 @@ def timer(session):
     """
     Запускает таймер и сохраняет модель хода, если таймер истёк. Время вводится в минутах
     """
-    if session.status == 'finished':
-        print('Сессия завершилась')
-        return
     if session.status == 'started' and session.turn_phase == 'negotiation':
         negotiation_time = session.turn_time.get(turn=session.current_turn).negotiation_time
-        time_in_seconds = negotiation_time * 60
-        t = threading.Timer(time_in_seconds, change_phase, args=[session, 'transaction'])
-        t.start()
+        time_in_seconds = negotiation_time * 5
+        print(f'Количество потоков: {len(threading.enumerate())}, \n Список потоков: {threading.enumerate()}')
+        return threading.Timer(time_in_seconds, change_phase, args=[session, 'transaction'])
     elif session.status == 'started' and session.turn_phase == 'transaction':
         transaction_time = session.turn_time.get(turn=session.current_turn).transaction_time
-        time_in_seconds = transaction_time * 60
-        t = threading.Timer(time_in_seconds, count_session, args=[session])
-        t.start()
+        time_in_seconds = transaction_time * 5
+        print(f'Количество потоков: {len(threading.enumerate())}, \n Список потоков: {threading.enumerate()}')
+        return threading.Timer(time_in_seconds, count_session, args=[session])
 
 
 def generate_turn_time(session_instance):

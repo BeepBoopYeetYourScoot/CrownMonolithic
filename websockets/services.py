@@ -13,7 +13,7 @@ from django.db.models import signals
 """
 
 
-@receiver([signals.post_save], sender=models.TurnTime)
+# @receiver([signals.post_save], sender=models.TurnTime)
 def notify_send_timer(sender, **kwargs):
     """
     Возвращает время на текущий ход
@@ -25,7 +25,7 @@ def notify_send_timer(sender, **kwargs):
         async_to_sync(channel_layer.group_send)(f'session_{turn.session.id}', {'type': 'send_timer'})
 
 
-@receiver([signals.post_save], sender=models.SessionModel)
+# @receiver([signals.post_save], sender=models.SessionModel)
 def notify_session(sender, **kwargs):
     """
     Уведомляет пользователей о старте сессии
@@ -39,7 +39,7 @@ def notify_session(sender, **kwargs):
             async_to_sync(channel_layer.group_send)(f'session_{session_instance.id}', {'type': 'change_player'})
 
 
-@receiver([signals.post_save], sender=models.ProducerModel)
+# @receiver([signals.post_save], sender=models.ProducerModel)
 def notify_producer(sender, **kwargs):
     """
     Уведомляет производителя при производстве заготовок и пересчёте
@@ -49,7 +49,7 @@ def notify_producer(sender, **kwargs):
     async_to_sync(channel_layer.group_send)(f'session_{producer_instance.player.session.id}', {'type': 'change_player'})
 
 
-@receiver([signals.post_save], sender=models.BrokerModel)
+# @receiver([signals.post_save], sender=models.BrokerModel)
 def notify_broker(sender, **kwargs):
     """
     Уведомляет маклера при пересчёте
@@ -59,7 +59,7 @@ def notify_broker(sender, **kwargs):
     async_to_sync(channel_layer.group_send)(f'session_{broker_instance.player.session.id}', {'type': 'change_player'})
 
 
-@receiver([signals.post_save], sender=models.PlayerModel)
+# @receiver([signals.post_save], sender=models.PlayerModel)
 def notify_players(sender, **kwargs):
     """
     Уведомляет пользователей при пересчёте
@@ -69,7 +69,7 @@ def notify_players(sender, **kwargs):
     async_to_sync(channel_layer.group_send)(f'session_{player_instance.session.id}', {'type': 'change_player'})
 
 
-@receiver([signals.post_init], sender=models.TransactionModel)
+# @receiver([signals.post_init], sender=models.TransactionModel)
 def notify_transaction(sender, **kwargs):
     """
     Уведомляет пользователей, когда создаётся новая транзакция в сессии
