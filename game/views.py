@@ -15,15 +15,11 @@ from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
 	start_session, count_session, produce_billets, send_trade, cancel_trade, \
-<<<<<<< HEAD
 	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
 	create_balance_request, accept_balance_request, \
-=======
-	end_turn, cancel_end_turn, accept_transaction, deny_transaction, create_balance_request, accept_balance_request, \
->>>>>>> feature/sockets
 	deny_balance_request, finish_session
 
-from websockets.services import finish_turn_by_players
+# from websockets.services import finish_turn_by_players
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
