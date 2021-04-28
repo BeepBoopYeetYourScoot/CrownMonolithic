@@ -37,8 +37,16 @@ def notify_change_session(sender, **kwargs):
     Уведомляет пользователей о старте сессии
     """
     session_instance = kwargs['instance']
-    if session_instance.status == 'started':
-        channel_layer = get_channel_layer()
+    channel_layer = get_channel_layer()
+    if kwargs['created']:
+        # Если появилась новая сессия (экшнов не хватает)
+        async_to_sync(channel_layer.group_send)(
+            'find_session',
+            {
+                'type': 'join_player'
+            }
+        )
+    elif session_instance.status == 'started':
         if session_instance.current_turn == 1 and \
                 session_instance.turn_phase == 'negotiation':
             async_to_sync(channel_layer.group_send)(
@@ -55,6 +63,19 @@ def notify_change_session(sender, **kwargs):
                 }
             )
 
+
+@receiver([signals.post_delete], sender=models.SessionModel)
+def notify_delete_session(sender, **kwargs):
+    if not kwargs['instance'].status == 'initialized':
+        return
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'find_session',
+        {
+            'type': 'join_player'
+        }
+    )
 
 
 @receiver([signals.post_save], sender=models.PlayerModel)
@@ -133,7 +154,7 @@ def notify_players(sender, **kwargs):
     )
 
 
-@receiver([signals.post_init], sender=models.TransactionModel)
+@receiver([signals.post_save], sender=models.TransactionModel)
 def notify_transaction(sender, **kwargs):
     """
     Уведомляет пользователей, когда создаётся новая транзакция в сессии
