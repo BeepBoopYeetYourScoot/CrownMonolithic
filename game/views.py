@@ -271,8 +271,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player=request.data.get('broker_player'))
 		# code = request.data.get('code')
 		# if broker.code == code:
 		terms = request.data.get('terms')

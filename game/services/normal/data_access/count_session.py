@@ -279,6 +279,7 @@ def send_trade(producer, broker, terms):
 	Отправляет сделку маклеру
 	"""
 	TransactionModel.objects.create(
+		session_id=producer.player.session_id,
 		producer_id=producer.id,
 		broker_id=broker.id,
 		quantity=terms['quantity'],

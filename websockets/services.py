@@ -32,7 +32,7 @@ def notify_send_timer(sender, **kwargs):
 
 
 @receiver([signals.post_save], sender=models.SessionModel)
-def notify_start_session(sender, **kwargs):
+def notify_change_session(sender, **kwargs):
     """
     Уведомляет пользователей о старте сессии
     """
@@ -56,25 +56,15 @@ def notify_start_session(sender, **kwargs):
             )
 
 
-@receiver([signals.post_save], sender=models.SessionModel)
-def notify_change_session_list(sender, **kwargs):
-    """
-    Уведомляет об обновлении списка сессий
-    """
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        'find_session',
-        {
-            'type': 'join_player'
-        }
-    )
-
 
 @receiver([signals.post_save], sender=models.PlayerModel)
 def notify_join_player(sender, **kwargs):
     """
     Уведомляет о присоединении игрока к сессии
     """
+    if not kwargs['created']:
+        return
+
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         'find_session',

@@ -170,13 +170,6 @@ class SessionConsumer(WebsocketConsumer):
             'action': 'change_player'
         }))
 
-    def start_game(self, event):
-        self.send(text_data=json.dumps({
-            "type": "start_game",
-            'start_game': True,
-            'action': 'start_game'
-        }))
-
 
 class LobbyConsumer(WebsocketConsumer):
     """
