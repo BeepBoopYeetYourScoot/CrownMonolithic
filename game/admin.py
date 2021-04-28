@@ -102,9 +102,9 @@ class SessionAdmin(admin.ModelAdmin):
     finish_turn.short_description = 'Завершить ход'
     fill_session.short_description = 'Заполнить сессию'
 
-    # finish_turn
+
     # finish_session
-    actions = [start_session, fill_session]
+    actions = [start_session, fill_session, finish_turn]
 
     def role_link(self, obj):
         role_id = obj.producer.id if obj.role == 'producer' else obj.broker.id

@@ -13,7 +13,7 @@ from django.db.models import signals
 """
 
 
-@receiver([signals.post_save], sender=models.SessionModel)
+# @receiver([signals.post_save], sender=models.SessionModel)
 def notify_send_timer(sender, **kwargs):
     """
     Возвращает время на текущий ход
@@ -32,7 +32,7 @@ def notify_send_timer(sender, **kwargs):
         )
 
 
-@receiver([signals.post_save], sender=models.SessionModel)
+# @receiver([signals.post_save], sender=models.SessionModel)
 def notify_start_session(sender, **kwargs):
     """
     Уведомляет пользователей о старте сессии
@@ -55,7 +55,7 @@ def notify_start_session(sender, **kwargs):
             )
 
 
-@receiver([signals.post_save], sender=models.SessionModel)
+# @receiver([signals.post_save], sender=models.SessionModel)
 def notify_change_session_list(sender, **kwargs):
     """
     Уведомляет об обновлении списка сессий
@@ -69,7 +69,7 @@ def notify_change_session_list(sender, **kwargs):
     )
 
 
-@receiver([signals.post_init], sender=models.PlayerModel)
+# @receiver([signals.post_init], sender=models.PlayerModel)
 def notify_join_player(sender, **kwargs):
     """
     Уведомляет о присоединении игрока к сессии
@@ -83,7 +83,7 @@ def notify_join_player(sender, **kwargs):
     )
 
 
-@receiver([signals.post_delete], sender=models.PlayerModel)
+# @receiver([signals.post_delete], sender=models.PlayerModel)
 def notify_exit_player(sender, **kwargs):
     """
     Уведомляет о выходе игрока из сессии
@@ -97,7 +97,7 @@ def notify_exit_player(sender, **kwargs):
     )
 
 
-@receiver([signals.post_save], sender=models.ProducerModel)
+# @receiver([signals.post_save], sender=models.ProducerModel)
 def notify_producer(sender, **kwargs):
     """
     Уведомляет производителя при производстве заготовок и пересчёте
@@ -112,7 +112,7 @@ def notify_producer(sender, **kwargs):
     )
 
 
-@receiver([signals.post_save], sender=models.PlayerModel)
+# @receiver([signals.post_save], sender=models.PlayerModel)
 def notify_players(sender, **kwargs):
     """
     Уведомляет пользователей при пересчёте
@@ -127,7 +127,7 @@ def notify_players(sender, **kwargs):
     )
 
 
-@receiver([signals.post_init], sender=models.TransactionModel)
+# @receiver([signals.post_init], sender=models.TransactionModel)
 def notify_transaction(sender, **kwargs):
     """
     Уведомляет пользователей, когда создаётся новая транзакция в сессии

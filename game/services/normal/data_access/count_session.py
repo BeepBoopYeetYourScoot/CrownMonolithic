@@ -2,6 +2,7 @@ import random
 
 from game.models import PlayerModel, TransactionModel, BalanceDetail, \
     BalanceRequest, TurnTime
+from .timer import timer
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
@@ -27,7 +28,7 @@ def generate_producer(db_producer_player, producer_class) -> ProducerNormal:
     Генерирует экземпляр класса производителя и возвращает экземпляр
     """
     producer = producer_class(db_producer_player.balance)
-    producer.id = db_producer_player.producer.id
+    producer.id = db_producer_player.id
     producer.billets_produced = db_producer_player.producer.billets_produced
     producer.billets_stored = db_producer_player.producer.billets_stored
     return producer
@@ -38,7 +39,7 @@ def generate_broker(db_broker_player, broker_class) -> BrokerNormal:
     Генерирует экземпляр класса маклера и возвращает экземпляр
     """
     broker = broker_class(db_broker_player.balance)
-    broker.id = db_broker_player.broker.id
+    broker.id = db_broker_player.id
     return broker
 
 
@@ -144,8 +145,8 @@ def start_session(session):
     session_instance.status = 'started'
     session_instance.save()
 
-    print(f'Запущен таймер {timer(session_instance).getName()}')
-    timer(session_instance).start()
+    # timer(session_instance)['timer'].start()
+    # print(f'Запущен таймер {threading.current_thread().name}')
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -155,13 +156,16 @@ def change_phase(session_instance, phase: str) -> None:
     assert session_instance.pk is not None, 'Session doesn\'t exist'
     assert session_instance.status == 'started'
 
+    # prev_thread = threading.current_thread()
+    # prev_thread.cancel()
+    # print(f'Останавливаю тред {prev_thread.name}')
     session_instance.turn_phase = phase
     session_instance.save()
     print(f'Фаза хода изменена на {session_instance.turn_phase}')
     [cancel_end_turn(player) for player in session_instance.player.all()]
 
-    print(f'Запущен таймер для фазы {session_instance.turn_phase}')
-    timer(session_instance).start()
+    # timer(session_instance)['timer'].start()
+    print(f'Запущен тред {threading.current_thread().name}')
 
 
 def count_session(session) -> None:
@@ -247,7 +251,8 @@ def count_session(session) -> None:
     print(
         f'Ход {session_instance.current_turn - 1} был посчитан. '
         f'Переключение на фазу {session_instance.turn_phase}')
-    timer(session_instance).start()
+    # timer(session_instance)['timer'].start()
+    # print(f'Запущен таймер {threading.current_thread().name}')
 
 
 def finish_session(session_instance):
@@ -256,6 +261,7 @@ def finish_session(session_instance):
     """
     assert session_instance.status == 'started', 'Сессия не запущена'
     session_instance.status = 'finished'
+    threading.current_thread().cancel()
     players = session_instance.player.all().order_by('-balance')
     for place, player in enumerate(players):
         player.position = place + 1
@@ -406,22 +412,6 @@ def generate_code() -> int:
     Генерирует шестизначный код маклера
     """
     return random.randint(111111, 999999)
-
-
-def timer(session):
-    """
-    Запускает таймер и сохраняет модель хода, если таймер истёк. Время вводится в минутах
-    """
-    if session.status == 'started' and session.turn_phase == 'negotiation':
-        negotiation_time = session.turn_time.get(turn=session.current_turn).negotiation_time
-        time_in_seconds = negotiation_time * 5
-        print(f'Количество потоков: {len(threading.enumerate())}, \n Список потоков: {threading.enumerate()}')
-        return threading.Timer(time_in_seconds, change_phase, args=[session, 'transaction'])
-    elif session.status == 'started' and session.turn_phase == 'transaction':
-        transaction_time = session.turn_time.get(turn=session.current_turn).transaction_time
-        time_in_seconds = transaction_time * 5
-        print(f'Количество потоков: {len(threading.enumerate())}, \n Список потоков: {threading.enumerate()}')
-        return threading.Timer(time_in_seconds, count_session, args=[session])
 
 
 def generate_turn_time(session_instance):
