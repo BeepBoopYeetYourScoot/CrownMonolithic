@@ -26,7 +26,7 @@ def generate_producer(db_producer_player, producer_class) -> ProducerNormal:
 	Генерирует экземпляр класса производителя и возвращает экземпляр
 	"""
 	producer = producer_class(db_producer_player.balance)
-	producer.id = db_producer_player.producer.id
+	producer.id = db_producer_player.id
 	producer.billets_produced = db_producer_player.producer.billets_produced
 	producer.billets_stored = db_producer_player.producer.billets_stored
 	return producer
@@ -37,7 +37,7 @@ def generate_broker(db_broker_player, broker_class) -> BrokerNormal:
 	Генерирует экземпляр класса маклера и возвращает экземпляр
 	"""
 	broker = broker_class(db_broker_player.balance)
-	broker.id = db_broker_player.broker.id
+	broker.id = db_broker_player.id
 	return broker
 
 
@@ -140,7 +140,6 @@ def start_session(session):
 	session_instance.current_turn = 1
 	session_instance.status = 'started'
 	session_instance.save()
-	# ws_services.notify_start_session(session_instance.id)
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -153,7 +152,6 @@ def change_phase(session_instance, phase: str) -> None:
 	session_instance.turn_phase = phase
 	session_instance.save()
 	[cancel_end_turn(player) for player in session_instance.player.all()]
-	# ws_services.notify_players(session_instance.id, phase)
 	return
 
 
@@ -164,7 +162,8 @@ def count_session(session) -> None:
 	session_instance = session
 	assert session_instance.pk is not None
 	assert session_instance.status == 'started', 'Session has not started'
-	assert session_instance.turn_phase == 'transaction', 'Session is in the wrong phase'
+	assert session_instance.turn_phase == 'transaction',\
+		'Session is in the wrong phase'
 
 	players_queryset = session_instance.player.all()
 	db_producers_queryset = players_queryset.filter(role='producer')
@@ -190,7 +189,8 @@ def count_session(session) -> None:
 			'price': transaction.price,
 			'transporting_cost': transaction.transporting_cost
 		}
-		deal = Transaction(transaction.producer.id, transaction.broker.id, terms).form_transaction()
+		deal = Transaction(transaction.producer.id,
+						   transaction.broker.id, terms).form_transaction()
 		transactions.append(deal)
 
 	for db_producer in db_producers:
@@ -209,7 +209,8 @@ def count_session(session) -> None:
 		broker.count_turn_balance_detail(crown_balance=crown_balance)
 		brokers.append(broker)
 
-	crown_balance_updated = count_turn(producers, brokers, transactions, crown_balance)
+	crown_balance_updated = count_turn(producers, brokers, transactions,
+									   crown_balance)
 
 	for producer in producers:
 		for db_producer in db_producers:
@@ -278,6 +279,13 @@ def send_trade(producer, broker, terms):
 	"""
 	Отправляет сделку маклеру
 	"""
+	if TransactionModel.objects.filter(
+		producer_id=producer.id,
+		broker_id=broker.id,
+		turn=producer.player.session.current_turn
+	).exists():
+		raise ValueError('You\'ve already have deal with this broker!')
+
 	TransactionModel.objects.create(
 		session_id=producer.player.session_id,
 		producer_id=producer.id,
@@ -323,11 +331,13 @@ def accept_transaction(producer, broker):
 	"""
 	transaction = TransactionModel.objects.get(
 		producer_id=producer.id,
-		broker_id=broker.id
+		broker_id=broker.id,
+		turn=broker.player.session.current_turn
 	)
+	if not transaction.status == 'active':
+		raise ValueError('Сделка уже рассмотренна!')
 	transaction.status = 'accepted'
 	transaction.save()
-	return
 
 
 def deny_transaction(producer, broker):
@@ -336,8 +346,11 @@ def deny_transaction(producer, broker):
 	"""
 	transaction = TransactionModel.objects.get(
 		producer_id=producer.id,
-		broker_id=broker.id
+		broker_id=broker.id,
+		turn=broker.player.session.current_turn
 	)
+	if not transaction.status == 'active':
+		raise ValueError('Сделка уже рассмотренна!')
 	transaction.status = 'denied'
 	transaction.save()
 
