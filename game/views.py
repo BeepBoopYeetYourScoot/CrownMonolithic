@@ -271,12 +271,24 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(player=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(player=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player=request.data
+											 .get('producer_player'))
+		broker = BrokerModel.objects.get(player=request.data
+										 .get('broker_player'))
 		# code = request.data.get('code')
 		# if broker.code == code:
 		terms = request.data.get('terms')
-		send_trade(producer, broker, terms)
+		try:
+			send_trade(producer, broker, terms)
+		except ValueError:
+			return Response(
+				{
+					'detail': 'Нельзя сделать больше 1 сделки'
+							  'с 1 маклером за 1 ход!'
+				},
+				status=status.HTTP_400_BAD_REQUEST
+			)
+
 		return Response(
 			{
 				'detail': f'Отправлена сделка от {producer.player.nickname}'
@@ -285,13 +297,6 @@ class ProducerViewSet(ModelViewSet):
 			},
 			status=status.HTTP_201_CREATED
 		)
-
-	# return Response(
-	# 	{
-	# 		'detail': 'Неверный код маклера!'
-	# 	},
-	# 	status=status.HTTP_406_NOT_ACCEPTABLE
-	# )
 
 	@action(methods=['delete'], detail=True, url_path='cancel-trade')
 	def cancel_trade(self, request, pk):
