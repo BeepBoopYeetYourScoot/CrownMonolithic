@@ -207,6 +207,8 @@ class BrokerSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    broker_role_name = serializers.CharField(source='broker.player.role_name')
+    producer_role_name = serializers.CharField(source='producer.player.role_name')
     class Meta:
         model = TransactionModel
         fields = '__all__'
@@ -214,7 +216,9 @@ class TransactionSerializer(serializers.ModelSerializer):
             'id',
             'session',
             'transporting_cost',
-            'turn'
+            'turn',
+            'broker_role_name',
+            'producer_role_name',
         ]
         extra_kwargs = {
             'session': {
