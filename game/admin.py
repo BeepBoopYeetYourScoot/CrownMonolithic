@@ -132,9 +132,27 @@ class SessionAdmin(admin.ModelAdmin):
     get_token.short_description = 'Токен'
 
 
+@admin.register(BalanceDetail)
+class BalanceDetailAdmin(admin.ModelAdmin):
+    list_display = (
+        'player',
+        'get_role_name',
+        'get_session',
+    )
+
+    def get_session(self, obj):
+        return mark_safe(f'<span>{obj.player.session}</span>')
+
+    get_session.short_description = 'Сессия'
+
+    def get_role_name(self, obj):
+        return mark_safe(f'<span>{obj.player.role_name}</span>')
+
+    get_role_name.short_description = 'Игровое имя'
+
+
 admin.site.register(ProducerModel)
 admin.site.register(BrokerModel)
 admin.site.register(TransactionModel)
-admin.site.register(BalanceDetail)
 admin.site.register(BalanceRequest)
 admin.site.register(TurnTime)
