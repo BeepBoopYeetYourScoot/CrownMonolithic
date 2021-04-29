@@ -15,45 +15,62 @@ class ProducerNormal(AbstractProducer):
 		self.transactions = []
 		self.is_bankrupt = False
 		self.status = 'OK'
-		self.balance_detail = None
+		self.balance_detail = {
+			'start_turn_balance': balance,
+			'fixed_costs': 0,
+			'variable_costs': 0,
+			'raw_stuff_costs': 0,
+			'storage': 0,
+			'logistics': 0,
+			'sales_income': 0,
+			'end_turn_balance': 0
+		}
 
 	def count_fixed_costs(self) -> float:
 		"""
 		Считает постоянные затраты производителя в зависимости от числа производимых заготовок
 		"""
 		if self.billets_produced <= 10:
-			return 600
+			fixed_costs = 600
 		elif self.billets_produced <= 20:
-			return 1000
+			fixed_costs = 1000
 		elif self.billets_produced <= 30:
-			return 1400
+			fixed_costs = 1400
 		elif self.billets_produced <= 50:
-			return 2000
+			fixed_costs = 2000
 		elif self.billets_produced <= 100:
-			return 4000
+			fixed_costs = 4000
 		else:
-			return 15000
+			fixed_costs = 15000
+		self.balance_detail['fixed_costs'] = fixed_costs
+		return fixed_costs
 
 	def count_variable_costs(self) -> int:
 		"""
 		Считает переменные затраты в зависимости от числа производимых заготовок
 		"""
 		if self.billets_produced <= 10:
-			return (self.billets_cost + 80) * self.billets_produced
+			job_costs = 80 * self.billets_produced
 		elif self.billets_produced <= 20:
-			return (self.billets_cost + 70) * self.billets_produced
+			job_costs = 70 * self.billets_produced
 		elif self.billets_produced <= 30:
-			return (self.billets_cost + 55) * self.billets_produced
+			job_costs = 55 * self.billets_produced
 		elif self.billets_produced <= 50:
-			return (self.billets_cost + 40) * self.billets_produced
+			job_costs = 40 * self.billets_produced
 		elif self.billets_produced <= 100:
-			return (self.billets_cost + 30) * self.billets_produced
+			job_costs = 30 * self.billets_produced
+		# FIXME: лишний вызов
+		self.balance_detail['variable_costs'] = job_costs\
+												+ self.count_negotiation_costs()
+		return job_costs + self.billets_cost * self.billets_produced
 
 	def count_storage_costs(self) -> int:
 		"""
 		Считает затраты на хранение заготовок
 		"""
-		return self.billets_stored * 50
+		storage_costs = self.billets_stored * 50
+		self.balance_detail['storage'] = storage_costs
+		return storage_costs
 
 	def count_logistics_costs(self) -> int:
 		"""
@@ -62,6 +79,7 @@ class ProducerNormal(AbstractProducer):
 		costs = 0
 		for transaction in self.transactions:
 			costs += transaction['terms']['quantity'] * transaction['terms']['transporting_cost']
+		self.balance_detail['logistics'] = costs
 		return costs
 
 	def count_negotiation_costs(self) -> int:
@@ -84,6 +102,8 @@ class ProducerNormal(AbstractProducer):
 		proceeds = 0
 		for transaction in self.transactions:
 			proceeds += transaction['terms']['quantity'] * transaction['terms']['price']
+
+		self.balance_detail['sales_income'] = proceeds
 		return proceeds
 
 	@property
@@ -110,26 +130,8 @@ class ProducerNormal(AbstractProducer):
 		Отправляет заготовки в прозизводство
 		"""
 		self.billets_produced = billet_amount
-		return
-
-	def count_turn_balance_detail(self) -> None:
-		"""
-		Записывает детализацию баланса производителя за предыдущий ход
-		"""
-		self.balance_detail = {
-			'start_turn_balance': self.balance,
-
-			'fixed_costs': self.count_fixed_costs(),
-			'variable_costs': self.count_variable_costs(),
-			'raw_stuff_costs': self.billets_produced * self.billets_cost,
-			'fine': 0,  # ?
-			'storage': self.count_storage_costs(),
-			'logistics': self.count_logistics_costs(),
-
-			'sales_income': self.count_proceeds(),
-
-			'end_turn_balance': 0
-		}
+		self.balance_detail['raw_stuff_costs'] = billet_amount\
+												 * self.billets_cost
 		return
 
 	def set_end_turn_balance(self) -> None:

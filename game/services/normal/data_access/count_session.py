@@ -199,7 +199,6 @@ def count_session(session) -> None:
         for transaction in transactions:
             if transaction['producer'] == producer.id:
                 producer.make_deal(transaction)
-        producer.count_turn_balance_detail()
         producers.append(producer)
 
     for db_broker in db_brokers:
@@ -207,7 +206,8 @@ def count_session(session) -> None:
         for transaction in transactions:
             if transaction['broker'] == broker.id:
                 broker.make_deal(transaction)
-        broker.count_turn_balance_detail(crown_balance=crown_balance)
+        # TODO: Может стоит перенести в generate_broker
+        broker.set_previous_crown_balance(crown_balance=crown_balance)
         brokers.append(broker)
 
     crown_balance_updated = count_turn(producers, brokers, transactions,

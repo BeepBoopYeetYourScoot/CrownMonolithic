@@ -13,8 +13,14 @@ class BrokerNormal(AbstractBroker):
 		self.transactions = []
 		self.is_bankrupt = False
 		self.status = 'OK'
-		self.balance_detail = None
-		self.proceeds = 0
+		self.balance_detail = {
+			'start_turn_balance': balance,
+			'purchase_blanks': 0,
+			'logistics': 0,
+			'blanks': 0,
+			'crown': 0,
+			'end_turn_balance': 0,
+		}
 
 	fixed_costs = 1000
 
@@ -24,6 +30,8 @@ class BrokerNormal(AbstractBroker):
 		"""
 		for transaction in self.transactions:
 			self.shipment += transaction['terms']['quantity']
+		if self.shipment > 0:
+			self.balance_detail['logistics'] = 1000
 		return
 
 	def make_deal(self, deal: dict) -> None:
@@ -38,32 +46,28 @@ class BrokerNormal(AbstractBroker):
 		costs = 0
 		for transaction in self.transactions:
 			costs += transaction['terms']['quantity'] * transaction['terms']['price']
+		self.balance_detail['purchase_blanks'] = costs
+		print('Записал затраты')
 		return costs
 
 	def count_proceeds(self, market_price) -> float:
 		"""Считает выручку от продажи заготовок"""
-		self.proceeds = self.shipment * market_price
-		return self.proceeds
+		proceeds = self.shipment * market_price
+		self.balance_detail['blanks'] = proceeds
+		return proceeds
 
-	def count_turn_balance_detail(self, crown_balance=0) -> None:
+	def set_end_turn_balance(self) -> None:
 		"""
 		Записывает детализацию баланса за ход
 		"""
-		self.balance_detail = {
-			'start_turn_balance': self.balance,
-
-			'purchase_blanks': self.count_purchase_costs(),
-			'logistics': 1000 if self.shipment > 0 else 0,
-			'blanks': self.proceeds,
-			'fine': 0,
-			'crown': crown_balance,
-
-			'end_turn_balance': 0,
-		}
+		self.balance_detail['end_turn_balance'] = self.balance
 		return
 
-	def set_end_turn_balance(self) -> None:
-		self.balance_detail['end_turn_balance'] = self.balance
+	def set_previous_crown_balance(self, crown_balance=0) -> None:
+		"""
+		Записывает баланс короны на предыдущий ход
+		"""
+		self.balance_detail['crown'] = crown_balance
 		return
 
 	def disrupt_transaction(self, producer):
@@ -74,7 +78,7 @@ class BrokerNormal(AbstractBroker):
 		disrupted_transaction = -1
 		if producer.status == 'VARIABLE':
 			for index, tr in enumerate(self.transactions):
-				if tr.producer == producer:
+				if tr['producer'] == producer:
 					disrupted_transaction = index
 		if disrupted_transaction == -1:
 			return
