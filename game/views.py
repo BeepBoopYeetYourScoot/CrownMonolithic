@@ -15,9 +15,11 @@ from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
 from game.services.normal.data_access.count_session import change_phase, \
 	start_session, count_session, produce_billets, send_trade, cancel_trade, \
-	end_turn, cancel_end_turn, accept_transaction, deny_transaction, \
-	finish_by_player_count, create_balance_request, accept_balance_request, \
+	end_turn, cancel_end_turn, accept_transaction, deny_transaction,\
+	create_balance_request, accept_balance_request, \
 	deny_balance_request, finish_session
+
+from websockets.services import finish_turn_by_players
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -30,7 +32,7 @@ import requests
 # url_name - НАЗВАНИЕ-МЕТОДА
 # detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
 
-BASE_URL = 'http://0.0.0.0:8000/change/'
+# BASE_URL = 'http://0.0.0.0:8000/change/'
 
 
 class SessionAdminViewSet(ModelViewSet):
@@ -217,7 +219,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 				'detail': 'Session is not started!'
 			}, status=status.HTTP_400_BAD_REQUEST)
 		end_turn(request.player)
-		finish_by_player_count(request.player.session)
+		# finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
 
 	@action(methods=['put'], detail=False, url_path='cancel-end-turn')
@@ -269,12 +271,22 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		# code = request.data.get('code')
 		# if broker.code == code:
 		terms = request.data.get('terms')
-		send_trade(producer, broker, terms)
+		try:
+			send_trade(producer, broker, terms)
+		except ValueError:
+			return Response(
+				{
+					'detail': 'Нельзя сделать больше 1 сделки'
+							  'с 1 маклером за 1 ход!'
+				},
+				status=status.HTTP_400_BAD_REQUEST
+			)
+
 		return Response(
 			{
 				'detail': f'Отправлена сделка от {producer.player.nickname}'
@@ -284,20 +296,13 @@ class ProducerViewSet(ModelViewSet):
 			status=status.HTTP_201_CREATED
 		)
 
-	# return Response(
-	# 	{
-	# 		'detail': 'Неверный код маклера!'
-	# 	},
-	# 	status=status.HTTP_406_NOT_ACCEPTABLE
-	# )
-
 	@action(methods=['delete'], detail=True, url_path='cancel-trade')
 	def cancel_trade(self, request, pk):
 		"""
 		Отменяет сделку с маклером
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		cancel_trade(producer, broker)
 		return Response(
 			{
@@ -384,8 +389,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Одобряет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		accept_transaction(producer, broker)
 		return Response(
 			{
@@ -399,8 +404,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Отклоняет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		deny_transaction(producer, broker)
 		return Response(
 			{
