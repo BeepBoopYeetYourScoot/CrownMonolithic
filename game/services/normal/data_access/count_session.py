@@ -10,7 +10,6 @@ from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
 from game.serializers import ProducerBalanceDetailSerializer, \
     BrokerBalanceDetailSerializer
-from websockets import services as ws_services
 
 PLAYER_NUMBER_PRESET = (
     ('12-14', '12-14 Игроков'),
@@ -54,10 +53,8 @@ def save_producer(producer_class_instance, db_producer_player) -> None:
     balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_producer_player)
     detail_serializer = ProducerBalanceDetailSerializer(
         balance_detail_instance, data=producer_class_instance.balance_detail)
-    if not detail_serializer.is_valid():
-        print('Smth happened with detail serializer, 54')
 
-    detail_serializer.save()
+    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором')
     db_producer_player.save()
     db_producer_player.producer.save()
     return
@@ -74,9 +71,7 @@ def save_broker(broker_class_instance, db_broker_player) -> None:
     balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_player)
     detail_serializer = BrokerBalanceDetailSerializer(
         balance_detail_instance, data=broker_class_instance.balance_detail)
-    if not detail_serializer.is_valid():
-        print('Smth happened with detail serializer, 74')
-    detail_serializer.save()
+    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором')
 
     db_broker_player.broker.code = random.randint(111111, 999999)
     db_broker_player.save()
@@ -192,8 +187,6 @@ def count_session(session) -> None:
         deal = Transaction(transaction.producer.id, transaction.broker.id, terms).form_transaction()
         transactions.append(deal)
 
-    print(transactions)
-
     for db_producer in db_producers:
         producer = generate_producer(db_producer, ProducerNormal)
         for transaction in transactions:
@@ -235,9 +228,6 @@ def count_session(session) -> None:
     if session_instance.current_turn == session_instance.turn_count:
         session_instance.status = 'finished'
     session_instance.save()
-
-
-# ws_services.notify_players(session_instance.id)
 
 
 def finish_session(session_instance):
