@@ -20,6 +20,8 @@ class LobbySerializer(serializers.ModelSerializer):
             'player_count',
             'current_turn',
             'turn_phase',
+            'allow_show_balance',
+            'allow_show_transaction_sum'
         ]
         read_only = [
             '__all__',
