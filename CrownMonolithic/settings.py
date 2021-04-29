@@ -114,8 +114,6 @@ CHANNEL_LAYERS = {
     }
 }
 
-BROKER_URL = 'redis://localhost:6379'
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 

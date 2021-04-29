@@ -219,7 +219,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
 				'detail': 'Session is not started!'
 			}, status=status.HTTP_400_BAD_REQUEST)
 		end_turn(request.player)
-		finish_by_player_count(request.player.session)
+		# finish_by_player_count(request.player.session)
 		return Response(status=status.HTTP_200_OK)
 
 	@action(methods=['put'], detail=False, url_path='cancel-end-turn')
@@ -271,10 +271,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отправляет маклеру предложение о сделке
 		"""
-		producer = ProducerModel.objects.get(player=request.data
-											 .get('producer_player'))
-		broker = BrokerModel.objects.get(player=request.data
-										 .get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		# code = request.data.get('code')
 		# if broker.code == code:
 		terms = request.data.get('terms')
@@ -303,8 +301,8 @@ class ProducerViewSet(ModelViewSet):
 		"""
 		Отменяет сделку с маклером
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		cancel_trade(producer, broker)
 		return Response(
 			{
@@ -391,8 +389,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Одобряет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		accept_transaction(producer, broker)
 		return Response(
 			{
@@ -406,8 +404,8 @@ class BrokerViewSet(ModelViewSet):
 		"""
 		Отклоняет сделку с производителем
 		"""
-		producer = ProducerModel.objects.get(id=request.data.get('producer_player'))
-		broker = BrokerModel.objects.get(id=request.data.get('broker_player'))
+		producer = ProducerModel.objects.get(player_id=request.data.get('producer_player'))
+		broker = BrokerModel.objects.get(player_id=request.data.get('broker_player'))
 		deny_transaction(producer, broker)
 		return Response(
 			{

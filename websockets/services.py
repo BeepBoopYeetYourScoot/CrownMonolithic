@@ -13,22 +13,22 @@ from django.db.models import signals
 """
 
 
-@receiver([signals.post_save], sender=models.TurnTime)
-def notify_send_timer(sender, **kwargs):
-    """
-    Возвращает время на текущий ход
-    """
-    turn = kwargs['instance']
-
-    # if turn.status != 'initialized' and turn.status != 'finished':
-        # channel_layer = get_channel_layer()
-        # async_to_sync(channel_layer.group_send)(
-        #     f'session_{turn.session.id}',
-        #     {
-        #         'type': 'send_timer',
-        #         'time' :
-        #     }
-        # )
+# @receiver([signals.post_save], sender=models.TurnTime)
+# def notify_send_timer(sender, **kwargs):
+#     """
+#     Возвращает время на текущий ход
+#     """
+#     turn = kwargs['instance']
+#
+#     # if turn.status != 'initialized' and turn.status != 'finished':
+#         # channel_layer = get_channel_layer()
+#         # async_to_sync(channel_layer.group_send)(
+#         #     f'session_{turn.session.id}',
+#         #     {
+#         #         'type': 'send_timer',
+#         #         'time' :
+#         #     }
+#         # )
 
 
 @receiver([signals.post_save], sender=models.SessionModel)
