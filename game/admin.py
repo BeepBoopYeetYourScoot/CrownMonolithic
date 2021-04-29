@@ -90,17 +90,24 @@ class SessionAdmin(admin.ModelAdmin):
             count_session.count_session(session)
         # requests.get('http://0.0.0.0:8000/start/')
 
+    def next_phase(self, request, queryset):
+        for session in queryset:
+            if session.turn_phase == 'negotiation':
+                count_session.change_phase(session, 'transaction')
+            elif session.turn_phase == 'transaction':
+                count_session.count_session(session)
+
     def fill_session(self, request, queryset):
         for session in queryset:
             for i in range(12):
                 PlayerModel.objects.create(session_id=session.id, nickname=f'{i}')
 
-    start_session.short_description = 'Начать сесиию'
-    finish_session.short_description = 'Завершить сессию'
-    finish_turn.short_description = 'Завершить ход'
     fill_session.short_description = 'Заполнить сессию'
-
-    actions = [start_session, finish_session, finish_turn, fill_session]
+    start_session.short_description = 'Начать сесиию'
+    next_phase.short_description = 'Завершить фазу'
+    finish_turn.short_description = 'Завершить ход'
+    finish_session.short_description = 'Завершить сессию'
+    actions = [fill_session, start_session, next_phase, finish_turn, finish_session]
 
     def role_link(self, obj):
         role_id = obj.producer.id if obj.role == 'producer' else obj.broker.id

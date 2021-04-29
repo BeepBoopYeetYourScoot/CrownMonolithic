@@ -24,7 +24,6 @@ class SessionConsumer(WebsocketConsumer):
         self.accept()
         # self.send_time(<time>)
 
-
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
@@ -35,16 +34,7 @@ class SessionConsumer(WebsocketConsumer):
         text_data_json = json.loads(text_data)
 
         # Send message to room group
-        if text_data_json['type'] == 'time':
-            time = text_data_json['time']
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    'type': 'send_timer',
-                    'time': time
-                }
-            )
-        elif text_data_json['type'] == 'start_game':
+        if text_data_json['type'] == 'start_game':
             async_to_sync(self.channel_layer.group_send)(
                 self.group_name,
                 {
@@ -60,16 +50,13 @@ class SessionConsumer(WebsocketConsumer):
                     "type": "change_player",
                 }
             )
-
-    # Receive message from room group
-    def send_time(self, event):
-        """
-        Отправляет время
-        """
-        self.send(text_data=json.dumps({
-            'time': '28479',  # event['time'],
-            'action': 'timer'
-        }))
+        elif text_data_json['type'] == 'update_timer':
+            async_to_sync(self.channel_layer.group_send)(
+                self.group_name,
+                {
+                    'type': 'update_timer'
+                }
+            )
 
     def change_player(self, event):
         """
@@ -80,11 +67,21 @@ class SessionConsumer(WebsocketConsumer):
             'action': 'change_player'
         }))
 
+    def update_timer(self, event):
+        """
+        При смене фазы или пересчёте сигналит обновить таймер
+        """
+        self.send(text_data=json.dumps({
+            'action': 'update_timer',
+            'time': event['time']
+        }))
+
 
 class LobbyConsumer(WebsocketConsumer):
     """
     Консьюмер до старта сессии
     """
+
     def connect(self):
         """
         Соединение к группе 'find_session'
@@ -93,6 +90,12 @@ class LobbyConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(
             self.group_name,
             self.channel_name
+        )
+        async_to_sync(self.channel_layer.group_send)(
+            self.group_name,
+            {
+                'type': 'update_lobby'
+            }
         )
         self.accept()
 
@@ -137,6 +140,13 @@ class LobbyConsumer(WebsocketConsumer):
                     "type": "start_game",
                 }
             )
+        elif text_data_json['type'] == 'update_lobby':
+            async_to_sync(self.channel_layer.group_send)(
+                self.group_name,
+                {
+                    'type': 'update_lobby'
+                }
+            )
 
     def join_player(self, event):
         """
@@ -144,7 +154,7 @@ class LobbyConsumer(WebsocketConsumer):
         """
         self.send(text_data=json.dumps({
             'action': 'join_player',
-            'data': True
+            'time': True
         }))
 
     def exit_player(self, event):
@@ -163,4 +173,12 @@ class LobbyConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps({
             'action': 'start_game',
             'start_game': 'true'
+        }))
+
+    def update_lobby(self, event):
+        """
+        Сигнализирует об обновлении списка лобби
+        """
+        self.send(text_data=json.dumps({
+            'action': 'update_lobby'
         }))

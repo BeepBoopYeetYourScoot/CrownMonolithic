@@ -13,22 +13,7 @@ from django.db.models import signals
 """
 
 
-# @receiver([signals.post_save], sender=models.TurnTime)
-# def notify_send_timer(sender, **kwargs):
-#     """
-#     Возвращает время на текущий ход
-#     """
-#     turn = kwargs['instance']
-#
-#     # if turn.status != 'initialized' and turn.status != 'finished':
-#         # channel_layer = get_channel_layer()
-#         # async_to_sync(channel_layer.group_send)(
-#         #     f'session_{turn.session.id}',
-#         #     {
-#         #         'type': 'send_timer',
-#         #         'time' :
-#         #     }
-#         # )
+# Нужен новый action new_session и всё к нему сопутствующее
 
 
 @receiver([signals.post_save], sender=models.SessionModel)
@@ -38,12 +23,12 @@ def notify_change_session(sender, **kwargs):
     """
     session_instance = kwargs['instance']
     channel_layer = get_channel_layer()
-    if kwargs['created']:
+    if session_instance.status == 'initialized':
         # Если появилась новая сессия (экшнов не хватает)
         async_to_sync(channel_layer.group_send)(
             'find_session',
             {
-                'type': 'join_player'
+                'type': 'update_lobby'
             }
         )
     elif session_instance.status == 'started':
@@ -62,6 +47,17 @@ def notify_change_session(sender, **kwargs):
                     'type': 'change_player'
                 }
             )
+        if session_instance.turn_phase == 'negotiation':
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
+        else:
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
+        async_to_sync(channel_layer.group_send)(
+            f'session_{session_instance.id}',
+            {
+                'type': 'update_timer',
+                'time': turn_time
+            }
+        )
 
 
 @receiver([signals.post_delete], sender=models.SessionModel)
@@ -177,7 +173,7 @@ def finish_turn_by_players(session_id):
     #  Не вписывается в общий роутинг на потребителя
     session_instance = models.SessionModel.objects.get(id=session_id)
     players_finished = session_instance.player.filter(ended_turn=True).count()
-    players_in_session = session_instance.player.count()
+    players_in_session = session_instance.player.all().count()
     channel_layer = get_channel_layer()
     if players_finished == players_in_session:
         if session_instance.phase == 'negotiation':

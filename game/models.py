@@ -233,8 +233,8 @@ class TurnTime(models.Model):
 
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, verbose_name="Сессия", related_name='turn_time')
     turn = models.IntegerField(default=0, verbose_name='Номер хода')
-    negotiation_time = models.IntegerField(default=1, verbose_name='Время на этап производства')
-    transaction_time = models.IntegerField(default=1, verbose_name="Время на этап заключения сделок")
+    negotiation_time = models.IntegerField(default=2, verbose_name='Время на этап производства')
+    transaction_time = models.IntegerField(default=2, verbose_name="Время на этап заключения сделок")
     status = models.CharField(choices=TIMER_STATUS, default='created', max_length=20)
 
     def __str__(self):

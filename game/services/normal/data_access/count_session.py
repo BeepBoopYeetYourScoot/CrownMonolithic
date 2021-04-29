@@ -1,7 +1,9 @@
 import random
+import threading
 
 from game.models import PlayerModel, TransactionModel, BalanceDetail, \
     BalanceRequest, TurnTime
+from .timer import timer
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
@@ -54,7 +56,7 @@ def save_producer(producer_class_instance, db_producer_player) -> None:
     detail_serializer = ProducerBalanceDetailSerializer(
         balance_detail_instance, data=producer_class_instance.balance_detail)
 
-    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором')
+    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором производителя')
     db_producer_player.save()
     db_producer_player.producer.save()
     return
@@ -71,7 +73,7 @@ def save_broker(broker_class_instance, db_broker_player) -> None:
     balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_player)
     detail_serializer = BrokerBalanceDetailSerializer(
         balance_detail_instance, data=broker_class_instance.balance_detail)
-    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором')
+    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором маклера')
 
     db_broker_player.broker.code = random.randint(111111, 999999)
     db_broker_player.save()
@@ -130,12 +132,16 @@ def start_session(session):
 
     distribute_roles(session_instance)
     generate_role_instances(session_instance)
+    generate_turn_time(session_instance)
     session_instance.crown_balance = session_instance.broker_starting_balance * session_instance.number_of_brokers / 4
 
     session_instance.current_turn = 1
     session_instance.status = 'started'
     session_instance.save()
+    # timer(session_instance).start()
 
+
+# timer(session_instance).start if threading
 
 def change_phase(session_instance, phase: str) -> None:
     """
@@ -147,7 +153,7 @@ def change_phase(session_instance, phase: str) -> None:
     session_instance.turn_phase = phase
     session_instance.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    return
+    # timer(session_instance).start()
 
 
 def count_session(session) -> None:
@@ -228,6 +234,7 @@ def count_session(session) -> None:
     if session_instance.current_turn == session_instance.turn_count:
         session_instance.status = 'finished'
     session_instance.save()
+    # timer(session_instance).start()
 
 
 def finish_session(session_instance):

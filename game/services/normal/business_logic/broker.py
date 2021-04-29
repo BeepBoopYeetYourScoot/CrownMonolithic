@@ -74,7 +74,7 @@ class BrokerNormal(AbstractBroker):
 		disrupted_transaction = -1
 		if producer.status == 'VARIABLE':
 			for index, tr in enumerate(self.transactions):
-				if tr.producer == producer:
+				if tr['producer'] == producer:
 					disrupted_transaction = index
 		if disrupted_transaction == -1:
 			return
