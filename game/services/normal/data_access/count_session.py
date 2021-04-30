@@ -100,33 +100,33 @@ def start_session(session):
     elif 15 <= number_of_players <= 20:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 4
-        if not session_instance.number_of_brokers:
+        if not session_instance.broker_starting_balance:
             session_instance.broker_starting_balance = 12000
-        if not session_instance.number_of_brokers:
+        if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
         session_instance.save()
     elif 21 <= number_of_players <= 25:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 5
-        if not session_instance.number_of_brokers:
+        if not session_instance.broker_starting_balance:
             session_instance.broker_starting_balance = 12000
-        if not session_instance.number_of_brokers:
+        if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
         session_instance.save()
     elif 26 <= number_of_players <= 30:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 6
-        if not session_instance.number_of_brokers:
+        if not session_instance.broker_starting_balance:
             session_instance.broker_starting_balance = 12000
-        if not session_instance.number_of_brokers:
+        if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
         session_instance.save()
     elif 31 <= number_of_players <= 35:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 7
-        if not session_instance.number_of_brokers:
+        if not session_instance.broker_starting_balance:
             session_instance.broker_starting_balance = 12000
-        if not session_instance.number_of_brokers:
+        if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
         session_instance.save()
 
@@ -138,10 +138,8 @@ def start_session(session):
     session_instance.current_turn = 1
     session_instance.status = 'started'
     session_instance.save()
-    # timer(session_instance).start()
+    timer(session_instance).start()
 
-
-# timer(session_instance).start if threading
 
 def change_phase(session_instance, phase: str) -> None:
     """
@@ -153,7 +151,7 @@ def change_phase(session_instance, phase: str) -> None:
     session_instance.turn_phase = phase
     session_instance.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    # timer(session_instance).start()
+    timer(session_instance).start()
 
 
 def count_session(session) -> None:
@@ -225,16 +223,21 @@ def count_session(session) -> None:
                 save_broker(broker, db_broker)
 
     session_instance.crown_balance = crown_balance_updated
+
+    if session_instance.current_turn == session_instance.turn_count:
+        session_instance.status = 'finished'
+        session_instance.save()
+        return
+
     session_instance.current_turn += 1
     session_instance.turn_phase = 'negotiation'
 
     for player in session_instance.player.all():
         player.ended_turn = False
         player.save()
-    if session_instance.current_turn == session_instance.turn_count:
-        session_instance.status = 'finished'
+
     session_instance.save()
-    # timer(session_instance).start()
+    timer(session_instance).start()
 
 
 def finish_session(session_instance):

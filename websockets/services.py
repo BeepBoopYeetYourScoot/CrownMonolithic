@@ -25,39 +25,16 @@ def notify_change_session(sender, **kwargs):
     channel_layer = get_channel_layer()
     if session_instance.status == 'initialized':
         # Если появилась новая сессия (экшнов не хватает)
-        async_to_sync(channel_layer.group_send)(
-            'find_session',
-            {
-                'type': 'update_lobby'
-            }
-        )
+        async_to_sync(channel_layer.group_send)('find_session', {'type': 'update_lobby'})
+
     elif session_instance.status == 'started':
-        if session_instance.current_turn == 1 and \
-                session_instance.turn_phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)(
-                'find_session',
-                {
-                    'type': 'start_game'
-                }
-            )
+        if session_instance.current_turn == 1 and session_instance.turn_phase == 'negotiation':
+            async_to_sync(channel_layer.group_send)('find_session', {'type': 'start_game'})
         else:
             async_to_sync(channel_layer.group_send)(
                 f'session_{session_instance.id}',
-                {
-                    'type': 'change_player'
-                }
-            )
-        if session_instance.turn_phase == 'negotiation':
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
-        else:
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
-        async_to_sync(channel_layer.group_send)(
-            f'session_{session_instance.id}',
-            {
-                'type': 'update_timer',
-                'time': turn_time
-            }
-        )
+                {'type': 'change_player'})
+        async_to_sync(channel_layer.group_send)(f'session_{session_instance.id}', {'type': 'update_timer'})
 
 
 @receiver([signals.post_delete], sender=models.SessionModel)
@@ -129,10 +106,7 @@ def notify_broker(sender, **kwargs):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'session_{broker_instance.player.session.id}',
-        {
-            'type': 'change_player'
-        }
-    )
+        {'type': 'change_player'})
 
 
 @receiver([signals.post_save], sender=models.PlayerModel)

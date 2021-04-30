@@ -101,8 +101,7 @@ def generate_role_instances(session_instance):
 		producer_player.city = next(city)
 		producer_player.map_url = f"/static/{number_of_brokers}_brokers/map.jpg"
 		producer_player.balance = session_instance.producer_starting_balance
-		producer_player\
-			.logistics_url = f"/static/{number_of_brokers}_broker/producer/" \
+		producer_player.logistics_url = f"/static/{number_of_brokers}_brokers/producer/" \
 							 f"{city_names[producer_player.city]}.png"
 		producer_player.role_name = next(name_gen)
 		producer_player.save()

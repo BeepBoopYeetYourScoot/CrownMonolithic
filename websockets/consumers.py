@@ -1,6 +1,8 @@
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 import json
+
+from game import models
 from . import services as ws_services
 
 """
@@ -17,12 +19,12 @@ class SessionConsumer(WebsocketConsumer):
         self.session_id = self.scope['url_route']['kwargs']['session_id']
         # TODO: Добавить логику проверки наличия сессии
         self.group_name = f'session_{self.session_id}'
-        async_to_sync(self.channel_layer.group_add)(
-            self.group_name,
-            self.channel_name
-        )
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
+        # async_to_sync(self.channel_layer.group_send)(self.group_name,
+        #                                              {'type': 'change_player'})
+        async_to_sync(self.channel_layer.group_send)(self.group_name,
+                                                     {'type': 'update_timer'})
         self.accept()
-        # self.send_time(<time>)
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
@@ -34,29 +36,15 @@ class SessionConsumer(WebsocketConsumer):
         text_data_json = json.loads(text_data)
 
         # Send message to room group
-        if text_data_json['type'] == 'start_game':
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    "type": "start_game",
-                    'start_game': True,
-                    'action': 'start_game'
-                }
-            )
-        elif text_data_json['type'] == 'change_player':
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    "type": "change_player",
-                }
-            )
+        if text_data_json['type'] == 'change_player':
+            async_to_sync(self.channel_layer.group_send)(self.group_name,
+                                                         {"type": "change_player"})
         elif text_data_json['type'] == 'update_timer':
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    'type': 'update_timer'
-                }
-            )
+            async_to_sync(self.channel_layer.group_send)(self.group_name,
+                                                         {'type': 'update_timer'})
+        elif text_data_json['type'] == 'start_game':
+            async_to_sync(self.channel_layer.group_send)(self.group_name,
+                                                         {'type': 'start_game', 'start_game': True, 'action': 'start_game'})
 
     def change_player(self, event):
         """
@@ -71,9 +59,14 @@ class SessionConsumer(WebsocketConsumer):
         """
         При смене фазы или пересчёте сигналит обновить таймер
         """
+        session_instance = models.SessionModel.objects.get(id=self.session_id)
+        if session_instance.turn_phase == 'negotiation':
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
+        else:
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
         self.send(text_data=json.dumps({
             'action': 'update_timer',
-            'time': event['time']
+            'time': turn_time
         }))
 
 

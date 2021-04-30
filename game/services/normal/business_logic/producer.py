@@ -60,8 +60,8 @@ class ProducerNormal(AbstractProducer):
 		elif self.billets_produced <= 100:
 			job_costs = 30 * self.billets_produced
 		# FIXME: лишний вызов
-		self.balance_detail['variable_costs'] = job_costs\
-												+ self.count_negotiation_costs()
+		self.balance_detail['variable_costs'] = job_costs + self.count_negotiation_costs()
+		self.balance_detail['raw_stuff_costs'] = self.billets_produced + self.billets_cost
 		return job_costs + self.billets_cost * self.billets_produced
 
 	def count_storage_costs(self) -> int:
