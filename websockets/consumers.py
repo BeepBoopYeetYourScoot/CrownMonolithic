@@ -3,6 +3,7 @@ from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 import json
 
 from game import models
+import datetime
 from . import services as ws_services
 
 """
@@ -42,9 +43,6 @@ class SessionConsumer(WebsocketConsumer):
         elif text_data_json['type'] == 'update_timer':
             async_to_sync(self.channel_layer.group_send)(self.group_name,
                                                          {'type': 'update_timer'})
-        elif text_data_json['type'] == 'start_game':
-            async_to_sync(self.channel_layer.group_send)(self.group_name,
-                                                         {'type': 'start_game', 'start_game': True, 'action': 'start_game'})
 
     def change_player(self, event):
         """
@@ -60,13 +58,21 @@ class SessionConsumer(WebsocketConsumer):
         При смене фазы или пересчёте сигналит обновить таймер
         """
         session_instance = models.SessionModel.objects.get(id=self.session_id)
+        turn_time_intervals = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
         if session_instance.turn_phase == 'negotiation':
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
+            turn_time = turn_time_intervals.negotiation_time
         else:
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
+            turn_time = turn_time_intervals.transaction_time
+        now = datetime.datetime.now(datetime.timezone.utc)
+        ends = turn_time_intervals.started + turn_time
+        time_left = ends - now
+
         self.send(text_data=json.dumps({
             'action': 'update_timer',
-            'time': turn_time
+            'time': {
+                'minutes': time_left.total_seconds() // 60,
+                'seconds': time_left.total_seconds() % 60
+            }
         }))
 
 

@@ -1,7 +1,10 @@
 import random
+import time
+
 from django.db import models
 from game.services.transporting_cost import get_transporting_cost
 from authorization.models import PlayerBaseModel
+from datetime import timedelta
 
 
 class SessionModel(models.Model):
@@ -233,8 +236,9 @@ class TurnTime(models.Model):
 
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, verbose_name="Сессия", related_name='turn_time')
     turn = models.IntegerField(default=0, verbose_name='Номер хода')
-    negotiation_time = models.IntegerField(default=1, verbose_name='Время на этап производства')
-    transaction_time = models.IntegerField(default=1, verbose_name="Время на этап заключения сделок")
+    started = models.DateTimeField(auto_now=True)
+    negotiation_time = models.DurationField(default=timedelta(minutes=10))
+    transaction_time = models.DurationField(default=timedelta(minutes=5))
     status = models.CharField(choices=TIMER_STATUS, default='created', max_length=20)
 
     def __str__(self):
