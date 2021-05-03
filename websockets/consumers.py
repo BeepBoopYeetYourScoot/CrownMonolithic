@@ -23,8 +23,8 @@ class SessionConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
         # async_to_sync(self.channel_layer.group_send)(self.group_name,
         #                                              {'type': 'change_player'})
-        async_to_sync(self.channel_layer.group_send)(self.group_name,
-                                                     {'type': 'update_timer'})
+        # async_to_sync(self.channel_layer.group_send)(self.group_name,
+        #                                              {'type': 'update_timer'})
         self.accept()
 
     def disconnect(self, close_code):
@@ -40,9 +40,9 @@ class SessionConsumer(WebsocketConsumer):
         if text_data_json['type'] == 'change_player':
             async_to_sync(self.channel_layer.group_send)(self.group_name,
                                                          {"type": "change_player"})
-        elif text_data_json['type'] == 'update_timer':
-            async_to_sync(self.channel_layer.group_send)(self.group_name,
-                                                         {'type': 'update_timer'})
+        # elif text_data_json['type'] == 'update_timer':
+        #     async_to_sync(self.channel_layer.group_send)(self.group_name,
+        #                                                  {'type': 'update_timer'})
 
     def change_player(self, event):
         """
@@ -58,21 +58,14 @@ class SessionConsumer(WebsocketConsumer):
         При смене фазы или пересчёте сигналит обновить таймер
         """
         session_instance = models.SessionModel.objects.get(id=self.session_id)
-        turn_time_intervals = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
         if session_instance.turn_phase == 'negotiation':
-            turn_time = turn_time_intervals.negotiation_time
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
         else:
-            turn_time = turn_time_intervals.transaction_time
-        now = datetime.datetime.now(datetime.timezone.utc)
-        ends = turn_time_intervals.started + turn_time
-        time_left = ends - now
+            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
 
         self.send(text_data=json.dumps({
             'action': 'update_timer',
-            'time': {
-                'minutes': time_left.total_seconds() // 60,
-                'seconds': time_left.total_seconds() % 60
-            }
+            'time': turn_time
         }))
 
 

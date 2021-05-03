@@ -16,3 +16,11 @@ def timer(session):
         time_in_seconds = transaction_time * 60
         return threading.Timer(time_in_seconds, count_session.count_session, args=[session])
 
+        # turn_time_intervals = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
+        # if session_instance.turn_phase == 'negotiation':
+        #     turn_time = turn_time_intervals.negotiation_time
+        # else:
+        #     turn_time = turn_time_intervals.transaction_time
+        # now = datetime.datetime.now(datetime.timezone.utc)
+        # ends = turn_time_intervals.started + turn_time
+        # time_left = ends - now

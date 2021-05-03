@@ -135,13 +135,13 @@ def start_session(session):
     generate_turn_time(session_instance)
     session_instance.crown_balance = session_instance.broker_starting_balance * session_instance.number_of_brokers / 4
 
-    turn_time = session_instance.turn_time.filter(turn=1).first()
+    # turn_time = session_instance.turn_time.filter(turn=1).first()
     session_instance.current_turn = 1
     session_instance.status = 'started'
-    turn_time.status = 'negotiation'
+    # turn_time.status = 'negotiation'
     session_instance.save()
-    turn_time.save()
-    timer(session_instance).start()
+    # turn_time.save()
+    # timer(session_instance).start()
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -151,14 +151,14 @@ def change_phase(session_instance, phase: str) -> None:
     assert session_instance.pk is not None, 'Session doesn\'t exist'
     assert session_instance.status == 'started'
 
-    turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
-    turn_time.status = f'{phase}'
+    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
+    # turn_time.status = f'{phase}'
 
     session_instance.turn_phase = phase
     session_instance.save()
-    turn_time.save()
+    # turn_time.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    timer(session_instance).start()
+    # timer(session_instance).start()
 
 
 def count_session(session) -> None:
@@ -166,13 +166,17 @@ def count_session(session) -> None:
     Пересчитывает параметры игроков внутри указанной сессии.
     """
     session_instance = session
-    turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
+    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
     assert session_instance.pk is not None
     assert session_instance.status == 'started', 'Session has not started'
     assert session_instance.turn_phase == 'transaction', \
         'Session is in the wrong phase'
 
     players_queryset = session_instance.player.all()
+    for player in players_queryset:
+        player.ended_turn = False
+        player.save()
+
     db_producers_queryset = players_queryset.filter(role='producer')
     db_broker_queryset = players_queryset.filter(role='broker')
 
@@ -239,15 +243,10 @@ def count_session(session) -> None:
 
     session_instance.current_turn += 1
     session_instance.turn_phase = 'negotiation'
-    turn_time.status = 'finished'
-
-    for player in session_instance.player.all():
-        player.ended_turn = False
-        player.save()
 
     session_instance.save()
-    turn_time.save()
-    timer(session_instance).start()
+    # turn_time.save()
+    # timer(session_instance).start()
 
 
 def finish_session(session_instance):

@@ -207,7 +207,6 @@ class TransactionModel(models.Model):
         super().save(*args, **kwargs)
 
 
-# FIXME: Нужно убрать логически повторяющиеся поля
 class BalanceDetail(models.Model):
     player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
                                   related_name='detail')
@@ -236,9 +235,9 @@ class TurnTime(models.Model):
 
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, verbose_name="Сессия", related_name='turn_time')
     turn = models.IntegerField(default=0, verbose_name='Номер хода')
-    started = models.DateTimeField(auto_now=True)
-    negotiation_time = models.DurationField(default=timedelta(minutes=10))
-    transaction_time = models.DurationField(default=timedelta(minutes=5))
+
+    negotiation_time = models.IntegerField(default=10, verbose_name='Время на этап производства')
+    transaction_time = models.IntegerField(default=5, verbose_name="Время на этап заключения сделок")
     status = models.CharField(choices=TIMER_STATUS, default='created', max_length=20)
 
     def __str__(self):
