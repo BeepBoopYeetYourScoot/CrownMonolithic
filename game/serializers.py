@@ -167,9 +167,8 @@ class ProducerSerializer(serializers.ModelSerializer):
 
 class BrokerSerializer(serializers.ModelSerializer):
     transactions = serializers.SerializerMethodField('get_transactions')
-    previous_turn_transactions = serializers \
-        .SerializerMethodField('get_previous_transactions')
-    pushared_billets = serializers.SerializerMethodField('get_pushared_billets')
+    previous_turn_transactions = serializers.SerializerMethodField('get_previous_transactions')
+    purchased_billets = serializers.SerializerMethodField('get_purchased_billets')
 
     class Meta:
         model = BrokerModel
@@ -199,18 +198,18 @@ class BrokerSerializer(serializers.ModelSerializer):
             many=True
         ).data
 
-    # FIXME: оптимизируй меня... или убей
-    def get_pushared_billets(self, instance):
-        pushared_billets = instance.transaction \
+    def get_purchased_billets(self, instance):
+        purchased_billets = instance.transaction \
             .filter(turn=instance.player.session.current_turn, status='accepted') \
             .aggregate(pushared_billets=Sum('quantity')) \
-            .get('pushared_billets', 0)
-        return pushared_billets if pushared_billets else 0
+            .get('purchased_billets', 0)
+        return purchased_billets if purchased_billets else 0
 
 
 class TransactionSerializer(serializers.ModelSerializer):
     broker_role_name = serializers.CharField(source='broker.player.role_name')
     producer_role_name = serializers.CharField(source='producer.player.role_name')
+
     class Meta:
         model = TransactionModel
         fields = '__all__'
@@ -266,12 +265,12 @@ class BrokerBalanceDetailSerializer(serializers.ModelSerializer):
         model = BalanceDetail
         fields = [
             'start_turn_balance',
-            'end_turn_balance',
-            'purchase_blanks',
-            'logistics',
-            'blanks',
-            'fine',
-            'crown',
+            'fixed',
+            'variable',
+            'billets_sold',
+            'proceeds',
+            'crown_balance',
+            'end_turn_balance'
         ]
 
 
@@ -280,15 +279,30 @@ class ProducerBalanceDetailSerializer(serializers.ModelSerializer):
         model = BalanceDetail
         fields = [
             'start_turn_balance',
-            'end_turn_balance',
-            'sales_income',
-            'fixed_costs',
-            'variable_costs',
-            'raw_stuff_costs',
-            'fine',
-            'storage',
+            'fixed',
+            'variable',
+            'materials',
             'logistics',
+            'negotiation',
+            'proceeds',
+            'storage',
+            'end_turn_balance'
         ]
+
+    def create(self, validated_data):
+        return BalanceDetail.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.start_turn_balance = validated_data.get('start_turn_balance', instance.start_turn_balance)
+        instance.fixed = validated_data.get('fixed', instance.fixed)
+        instance.variable = validated_data.get('variable', instance.variable)
+        instance.materials = validated_data.get('materials', instance.materials)
+        instance.logistics = validated_data.get('logistics', instance.logistics)
+        instance.negotiation = validated_data.get('negotiation', instance.negotiation)
+        instance.proceeds = validated_data.get('proceeds', instance.proceeds)
+        instance.storage = validated_data.get('storage', instance.storage)
+        instance.end_turn_balance = validated_data.get('end_turn_balance', instance.end_turn_balance)
+        return instance
 
 
 class BalanceRequestSerializer(serializers.ModelSerializer):

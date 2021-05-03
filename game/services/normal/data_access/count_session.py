@@ -1,3 +1,4 @@
+import json
 import random
 import threading
 
@@ -52,9 +53,10 @@ def save_producer(producer_class_instance, db_producer_player) -> None:
     db_producer_player.producer.billets_stored = producer_class_instance.billets_stored
     db_producer_player.status = producer_class_instance.status
 
-    balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_producer_player)
+    balance_detail_instance = BalanceDetail.objects.get_or_create(player=db_producer_player)
     detail_serializer = ProducerBalanceDetailSerializer(
         balance_detail_instance, data=producer_class_instance.balance_detail)
+    print(producer_class_instance.balance_detail)
 
     detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором производителя')
     db_producer_player.save()
@@ -215,8 +217,6 @@ def count_session(session) -> None:
         for transaction in transactions:
             if transaction['broker'] == broker.id:
                 broker.make_deal(transaction)
-        # TODO: Может стоит перенести в generate_broker
-        broker.set_previous_crown_balance(crown_balance=crown_balance)
         brokers.append(broker)
 
     crown_balance_updated = count_turn(producers, brokers, transactions,
@@ -225,13 +225,11 @@ def count_session(session) -> None:
     for producer in producers:
         for db_producer in db_producers:
             if db_producer.producer.id == producer.id:
-                producer.set_end_turn_balance()
                 save_producer(producer, db_producer)
 
     for broker in brokers:
         for db_broker in db_brokers:
             if db_broker.broker.id == broker.id:
-                broker.set_end_turn_balance()
                 save_broker(broker, db_broker)
 
     session_instance.crown_balance = crown_balance_updated
