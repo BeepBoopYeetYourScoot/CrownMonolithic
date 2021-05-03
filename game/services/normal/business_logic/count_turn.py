@@ -68,15 +68,15 @@ def count_turn(producer_list: list, broker_list: list, transaction_list: list, c
     for producer in producer_list:
         if producer.is_bankrupt:
             continue
+        producer.store_billets()
+        if producer.billets_stored < 0:
+            producer.status = 'UNTRUSTED'
+            producer.is_bankrupt = True
         producer.balance -= producer.count_storage_costs()
         if producer.balance < 0:
             producer.status = 'STORAGE'
             producer.is_bankrupt = True
             continue
-        producer.store_billets()
-        if producer.billets_stored < 0:
-            producer.status = 'UNTRUSTED'
-            producer.is_bankrupt = True
 
     crown.update_balance(market_volume)
 
