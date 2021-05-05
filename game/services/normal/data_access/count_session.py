@@ -1,9 +1,7 @@
 import random
-import threading
 
 from game.models import PlayerModel, TransactionModel, BalanceDetail, \
     BalanceRequest, TurnTime
-from .timer import timer
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
@@ -135,13 +133,9 @@ def start_session(session):
     generate_turn_time(session_instance)
     session_instance.crown_balance = session_instance.broker_starting_balance * session_instance.number_of_brokers / 4
 
-    # turn_time = session_instance.turn_time.filter(turn=1).first()
     session_instance.current_turn = 1
     session_instance.status = 'started'
-    # turn_time.status = 'negotiation'
     session_instance.save()
-    # turn_time.save()
-    # timer(session_instance).start()
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -151,14 +145,9 @@ def change_phase(session_instance, phase: str) -> None:
     assert session_instance.pk is not None, 'Session doesn\'t exist'
     assert session_instance.status == 'started'
 
-    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
-    # turn_time.status = f'{phase}'
-
     session_instance.turn_phase = phase
     session_instance.save()
-    # turn_time.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    # timer(session_instance).start()
 
 
 def count_session(session) -> None:
@@ -166,7 +155,6 @@ def count_session(session) -> None:
     Пересчитывает параметры игроков внутри указанной сессии.
     """
     session_instance = session
-    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
     assert session_instance.pk is not None
     assert session_instance.status == 'started', 'Session has not started'
     assert session_instance.turn_phase == 'transaction', \
@@ -215,7 +203,6 @@ def count_session(session) -> None:
         for transaction in transactions:
             if transaction['broker'] == broker.id:
                 broker.make_deal(transaction)
-        # TODO: Может стоит перенести в generate_broker
         broker.set_previous_crown_balance(crown_balance=crown_balance)
         brokers.append(broker)
 
@@ -237,16 +224,13 @@ def count_session(session) -> None:
     session_instance.crown_balance = crown_balance_updated
 
     if session_instance.current_turn == session_instance.turn_count:
-        session_instance.status = 'finished'
-        session_instance.save()
+        finish_session(session_instance)
         return
 
     session_instance.current_turn += 1
     session_instance.turn_phase = 'negotiation'
 
     session_instance.save()
-    # turn_time.save()
-    # timer(session_instance).start()
 
 
 def finish_session(session_instance):
@@ -255,18 +239,13 @@ def finish_session(session_instance):
     """
     assert session_instance.status == 'started', 'Сессия не запущена'
     session_instance.status = 'finished'
-    players = session_instance.player.all().order_by('-balance')
+    players = session_instance.player.filter(is_bankrupt=False).order_by('-balance')
     for place, player in enumerate(players):
         player.position = place + 1
         player.save()
     session_instance.save()
-    # ws_services.notify_finish(session_instance.id)
     return
 
-
-# def return_started_status(session_instance):
-# 	assert session_instance.pk is not None
-# 	return session_instance.status
 
 
 def create_player(session_instance, nickname):
@@ -370,8 +349,6 @@ def deny_transaction(producer, broker):
 def create_balance_request(producer, broker) -> None:
     """
     Создает запрос на просмотр баланса
-    :param producer: PlayerModel
-    :param broker: PlayerModel
     """
     BalanceRequest.objects.create(
         producer=producer,
@@ -384,8 +361,6 @@ def create_balance_request(producer, broker) -> None:
 def accept_balance_request(producer, broker) -> None:
     """
     Согласует запрос на просмотр баланса
-    :param producer: PlayerModel
-    :param broker: PlayerModel
     """
     requests = BalanceRequest.objects.filter(
         producer=producer,
@@ -403,8 +378,6 @@ def accept_balance_request(producer, broker) -> None:
 def deny_balance_request(producer, broker) -> None:
     """
     Отклоняет запрос на просмотр баланса
-    :param producer: PlayerModel
-    :param broker: PlayerModel
     """
     requests = BalanceRequest.objects.filter(
         producer=producer,

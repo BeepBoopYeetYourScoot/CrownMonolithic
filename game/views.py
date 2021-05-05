@@ -186,9 +186,8 @@ class LobbyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
 		"""
 		session_instance = SessionModel.objects.get(pk=pk)
 		if session_instance.status == 'finished':
-			players = PlayerModel.objects \
-				.filter(session_id=session_instance.id) \
-				.order_by('is_bankrupt', '-balance')
+			players = PlayerModel.objects.filter(
+				session_id=session_instance.id, is_bankrupt=False).order_by('-balance')
 			return Response(
 				serializers.PlayerResultSerializer(players, many=True).data,
 				status=status.HTTP_200_OK
@@ -286,7 +285,6 @@ class ProducerViewSet(ModelViewSet):
 					},
 					status=status.HTTP_400_BAD_REQUEST
 				)
-
 			return Response(
 				{
 					'detail': f'Отправлена сделка от {producer.player.nickname}'

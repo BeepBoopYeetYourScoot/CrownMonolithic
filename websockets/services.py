@@ -24,15 +24,26 @@ def notify_change_session(sender, **kwargs):
     session_instance = kwargs['instance']
     channel_layer = get_channel_layer()
     if session_instance.status == 'initialized':
-        async_to_sync(channel_layer.group_send)('find_session', {'type': 'update_lobby'})
+        async_to_sync(channel_layer.group_send)(
+            'find_session',
+            {'type': 'update_lobby'})
     elif session_instance.status == 'started':
         if session_instance.current_turn == 1 and session_instance.turn_phase == 'negotiation':
-            async_to_sync(channel_layer.group_send)('find_session', {'type': 'start_game'})
-        else:
+            async_to_sync(channel_layer.group_send)(
+                'find_session',
+                {'type': 'start_game'})
+        elif session_instance.turn_phase == 'negotiation':
             async_to_sync(channel_layer.group_send)(
                 f'session_{session_instance.id}',
-                {'type': 'change_player'})
-        # async_to_sync(channel_layer.group_send)(f'session_{session_instance.id}', {'type': 'update_timer'})
+                {'type': 'next_turn'})
+        async_to_sync(channel_layer.group_send)(
+            f'session_{session_instance.id}',
+            {'type': 'change_player'}
+        )
+    elif session_instance.status == 'finished':
+        async_to_sync(channel_layer.group_send)(
+            f'session_{session_instance.id}',
+            {'type': 'finish_session'})
 
 
 @receiver([signals.post_delete], sender=models.SessionModel)

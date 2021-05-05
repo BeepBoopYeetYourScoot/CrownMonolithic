@@ -210,18 +210,18 @@ class TransactionModel(models.Model):
 class BalanceDetail(models.Model):
     player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
                                   related_name='detail')
-    start_turn_balance = models.IntegerField(default=0)
-    end_turn_balance = models.IntegerField(default=0)
-    sales_income = models.IntegerField(default=0)
-    fixed_costs = models.IntegerField(default=0)
-    variable_costs = models.IntegerField(default=0)
-    raw_stuff_costs = models.IntegerField(default=0)
-    fine = models.IntegerField(default=0)
-    storage = models.IntegerField(default=0)
-    logistics = models.IntegerField(default=0)
-    purchase_blanks = models.IntegerField(default=0)
-    blanks = models.IntegerField(default=0)
-    crown = models.IntegerField(default=0)
+    start_turn_balance = models.IntegerField(default=0, verbose_name="Баланс на начало хода")
+    end_turn_balance = models.IntegerField(default=0, verbose_name="Баланс на конец хода")
+    sales_income = models.IntegerField(default=0, verbose_name="Прибыль от продаж")
+    fixed_costs = models.IntegerField(default=0, verbose_name="Постоянные затраты")
+    variable_costs = models.IntegerField(default=0, verbose_name="Переменные затраты")
+    raw_stuff_costs = models.IntegerField(default=0, verbose_name="Затраты на материалы")
+    fine = models.IntegerField(default=0, verbose_name="Пошлина за переговоры")
+    storage = models.IntegerField(default=0, verbose_name="Затраты на хранение")
+    logistics = models.IntegerField(default=0, verbose_name="Затраты на хранение заготовок")
+    purchase_blanks = models.IntegerField(default=0, verbose_name="Затраты на покупку заготовок")
+    blanks = models.IntegerField(default=0, verbose_name="Куплено заготовок")
+    crown = models.IntegerField(default=0, verbose_name="Баланс Короны")
 
 
 class TurnTime(models.Model):

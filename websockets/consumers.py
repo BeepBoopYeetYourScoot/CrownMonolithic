@@ -3,16 +3,6 @@ from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 import json
 
 from game import models
-import datetime
-from . import services as ws_services
-
-"""
-Пример нормально сконструированного Консумера
-
-Можно работать с моделями прямо из потребителей
-import json
-from services import get_timer, notifications
-"""
 
 
 class SessionConsumer(WebsocketConsumer):
@@ -21,10 +11,6 @@ class SessionConsumer(WebsocketConsumer):
         # TODO: Добавить логику проверки наличия сессии
         self.group_name = f'session_{self.session_id}'
         async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
-        # async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                              {'type': 'change_player'})
-        # async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                              {'type': 'update_timer'})
         self.accept()
 
     def disconnect(self, close_code):
@@ -36,13 +22,9 @@ class SessionConsumer(WebsocketConsumer):
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
 
-        # Send message to room group
         if text_data_json['type'] == 'change_player':
             async_to_sync(self.channel_layer.group_send)(self.group_name,
                                                          {"type": "change_player"})
-        # elif text_data_json['type'] == 'update_timer':
-        #     async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                                  {'type': 'update_timer'})
 
     def change_player(self, event):
         """
@@ -68,6 +50,22 @@ class SessionConsumer(WebsocketConsumer):
             'time': turn_time
         }))
 
+    def next_turn(self, event):
+        """
+        Отправляет сообщение о том, что начался новый ход
+        """
+        self.send(text_data=json.dumps({
+            'action': 'next_turn'
+        }))
+
+    def finish_session(self, event):
+        """
+        Отправляет сообщение о завершении сессии
+        """
+        self.send(text_data=json.dumps({
+            'action': 'finish_session'
+        }))
+
 
 class LobbyConsumer(WebsocketConsumer):
     """
@@ -83,13 +81,13 @@ class LobbyConsumer(WebsocketConsumer):
             self.group_name,
             self.channel_name
         )
+        self.accept()
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {
                 'type': 'update_lobby'
             }
         )
-        self.accept()
 
     def disconnect(self, close_code):
         """

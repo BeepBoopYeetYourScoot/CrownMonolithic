@@ -30,8 +30,7 @@ class BrokerNormal(AbstractBroker):
 		"""
 		for transaction in self.transactions:
 			self.shipment += transaction['terms']['quantity']
-		if self.shipment > 0:
-			self.balance_detail['logistics'] = 1000
+		self.balance_detail['logistics'] = 1000
 		return
 
 	def make_deal(self, deal: dict) -> None:

@@ -22,6 +22,7 @@ class ProducerNormal(AbstractProducer):
 			'raw_stuff_costs': 0,
 			'storage': 0,
 			'logistics': 0,
+			'fine': 0,
 			'sales_income': 0,
 			'end_turn_balance': 0
 		}
@@ -50,19 +51,18 @@ class ProducerNormal(AbstractProducer):
 		Считает переменные затраты в зависимости от числа производимых заготовок
 		"""
 		if self.billets_produced <= 10:
-			job_costs = 80 * self.billets_produced
+			op_ex = 80 * self.billets_produced
 		elif self.billets_produced <= 20:
-			job_costs = 70 * self.billets_produced
+			op_ex = 70 * self.billets_produced
 		elif self.billets_produced <= 30:
-			job_costs = 55 * self.billets_produced
+			op_ex = 55 * self.billets_produced
 		elif self.billets_produced <= 50:
-			job_costs = 40 * self.billets_produced
+			op_ex = 40 * self.billets_produced
 		elif self.billets_produced <= 100:
-			job_costs = 30 * self.billets_produced
-		# FIXME: лишний вызов
-		self.balance_detail['variable_costs'] = job_costs + self.count_negotiation_costs()
-		self.balance_detail['raw_stuff_costs'] = self.billets_produced + self.billets_cost
-		return job_costs + self.billets_cost * self.billets_produced
+			op_ex = 30 * self.billets_produced
+		self.balance_detail['variable_costs'] = op_ex
+		self.balance_detail['raw_stuff_costs'] = self.billets_produced * self.billets_cost
+		return op_ex + self.billets_cost * self.billets_produced
 
 	def count_storage_costs(self) -> int:
 		"""
@@ -86,6 +86,7 @@ class ProducerNormal(AbstractProducer):
 		"""
 		Считает затраты на проведение переговоров
 		"""
+		self.balance_detail['fine'] = len(self.transactions) * 20
 		return len(self.transactions) * 20
 
 	def make_deal(self, deal: dict) -> None:
