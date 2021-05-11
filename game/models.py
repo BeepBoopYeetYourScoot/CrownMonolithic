@@ -29,20 +29,20 @@ class SessionModel(models.Model):
 
     name = models.CharField(max_length=150, verbose_name="Название")
     game_type = models.CharField(max_length=15, choices=GAME_TYPES, default='normal', verbose_name='Тип игры')
-    turn_count = models.PositiveSmallIntegerField(verbose_name="Число ходов")
+    turn_count = models.PositiveIntegerField(verbose_name="Число ходов")
 
     # Всё, что помечено аргументом editable, впоследствии может уйти в админку, поэтому лучше выделять эти
     # параметры отдельно
-    number_of_brokers = models.PositiveSmallIntegerField(editable=True, default=0, verbose_name="Число маклеров")
-    crown_balance = models.PositiveSmallIntegerField(default=0, editable=False, verbose_name='Баланс Короны')
+    number_of_brokers = models.PositiveIntegerField(editable=True, default=0, verbose_name="Число маклеров")
+    crown_balance = models.PositiveIntegerField(default=0, editable=False, verbose_name='Баланс Короны')
     status = models.CharField(max_length=15, choices=SESSION_STATUSES, default='initialized', editable=False,
                               verbose_name="Статус")
-    broker_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
+    broker_starting_balance = models.PositiveIntegerField(editable=True, default=0,
                                                                verbose_name='Баланс \n маклера')
-    producer_starting_balance = models.PositiveSmallIntegerField(editable=True, default=0,
+    producer_starting_balance = models.PositiveIntegerField(editable=True, default=0,
                                                                  verbose_name="Баланс производителя")
-    transaction_limit = models.PositiveSmallIntegerField(default=2000, editable=False)
-    current_turn = models.PositiveSmallIntegerField(verbose_name='Текущий ход', default=0, editable=True)
+    transaction_limit = models.PositiveIntegerField(default=2000, editable=False)
+    current_turn = models.PositiveIntegerField(verbose_name='Текущий ход', default=0, editable=True)
     turn_phase = models.CharField(max_length=20, choices=PHASE_STATUSES, default='negotiation', editable=True,
                                   verbose_name="Фаза хода")
     allow_show_balance = models.BooleanField(default=False, verbose_name='Разрешить производителям показывать баланс')
@@ -78,7 +78,7 @@ class PlayerModel(PlayerBaseModel):
                             default='unassigned', editable=True)
     role_name = models.CharField(max_length=20, verbose_name='Игровое имя', default='unassigned',
                                  editable=True)
-    position = models.PositiveSmallIntegerField(verbose_name='Место', default=0,
+    position = models.PositiveIntegerField(verbose_name='Место', default=0,
                                                 editable=False)
     ended_turn = models.BooleanField(default=False)
     city = models.CharField(max_length=20, choices=CITIES, verbose_name='Расположение', default='unassigned')
@@ -115,7 +115,7 @@ class ProducerModel(models.Model):
 class BrokerModel(models.Model):
     player = models.OneToOneField(PlayerModel, on_delete=models.CASCADE,
                                   related_name='broker')
-    code = models.PositiveSmallIntegerField()
+    code = models.PositiveIntegerField()
 
     class Meta:
         verbose_name = 'Маклер'
@@ -153,7 +153,7 @@ class BalanceRequest(models.Model):
                                default=0)
     status = models.CharField(max_length=10, choices=TRANSACTION_STATUSES,
                               default='active')
-    turn = models.PositiveSmallIntegerField()
+    turn = models.PositiveIntegerField()
 
     class Meta:
         verbose_name = 'Запрос баланса'
@@ -179,10 +179,10 @@ class TransactionModel(models.Model):
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, related_name='transaction')
     producer = models.ForeignKey(ProducerModel, on_delete=models.CASCADE, related_name='transaction')
     broker = models.ForeignKey(BrokerModel, on_delete=models.CASCADE, related_name='transaction')
-    quantity = models.PositiveSmallIntegerField(default=0)
-    price = models.PositiveSmallIntegerField(default=0)
-    transporting_cost = models.PositiveSmallIntegerField(default=10, editable=False)
-    turn = models.PositiveSmallIntegerField(editable=True)
+    quantity = models.PositiveIntegerField(default=0)
+    price = models.PositiveIntegerField(default=0)
+    transporting_cost = models.PositiveIntegerField(default=10, editable=False)
+    turn = models.PositiveIntegerField(editable=True)
     status = models.CharField(max_length=15, choices=TRANSACTION_STATUSES, default='active')
 
     class Meta:
