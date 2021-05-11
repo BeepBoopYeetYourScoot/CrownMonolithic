@@ -72,14 +72,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-    ),
-    # 'DEFAULT_FILTER_BACKENDS': (
-    #     'django_filters.rest_framework.DjangoFilterBackend',
-    # ),
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    # 'PAGE_SIZE': 1
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'UNAUTHENTICATED_USER': None,
 }
 
 ROOT_URLCONF = 'CrownMonolithic.urls'
@@ -87,8 +81,7 @@ ROOT_URLCONF = 'CrownMonolithic.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -123,6 +116,23 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+"""
+Config for connection to PostgreSQL
+Enable only with psycopg2 package installed
+"""
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'crown',
+#         'USER': 'crownadmin',
+#         'PASSWORD': 'crownadmin',
+#         'HOST': '127.0.0.1',
+#         'PORT': '5432',
+#     }
+#
+# }
 
 
 # Password validation
@@ -162,7 +172,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+"""
+Path for deploy
+"""
+# STATIC_ROOT = os.path.join(BASE_DIR.parent, "CrownFrontend/static")
+
 # Game settings
 
 PLAYER_MODEL = 'game.PlayerModel'
