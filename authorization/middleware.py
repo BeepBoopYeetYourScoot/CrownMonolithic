@@ -7,7 +7,7 @@ class PlayerAuthMiddleware(MiddlewareMixin):
         try:
             token = request.headers['Authorization'].split(' ')[1]
             request.player = get_player_from_token(token)
-        except KeyError:
+        except (KeyError, IndexError):
             print('no token')
         except ValueError:
             print('not a player')
