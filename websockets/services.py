@@ -155,8 +155,10 @@ def finish_turn_by_players(sender, **kwargs):
     """
     player = kwargs['instance']
     session_instance = models.SessionModel.objects.get(id=player.session.id)
-    players_finished = session_instance.player.filter(ended_turn=True).count()
-    players_in_session = session_instance.player.all().count()
+    players_finished = session_instance.player\
+        .filter(ended_turn=True, is_bankrupt=False).count()
+    players_in_session = session_instance.player\
+        .filter(is_bankrupt=False).count()
     if players_finished == players_in_session:
         if session_instance.turn_phase == 'negotiation':
             count_session.change_phase(session_instance, 'transaction')
