@@ -2,21 +2,14 @@ from game.services.producer import AbstractProducer
 
 
 class ProducerHard(AbstractProducer):
-    # FIXME Фиксить нужно вообще всё
-
-    available_materials = {
-        'spruce': False,
-        'oak': False,
-        'redwood': False
-    }
 
     def __init__(self, balance):
         self.balance = balance
         self.billets_produced = (0, 0, 0)
         self.billets_stored = {
-            'spruce': [],
-            'oak': [],
-            'redwood': []
+            'spruce': (0, 0, 0),
+            'oak': (0, 0, 0),
+            'redwood': (0, 0, 0)
         }
         self.machinery = {
             'chinese': [],
@@ -31,7 +24,7 @@ class ProducerHard(AbstractProducer):
 
     def count_fixed_costs(self) -> float:
         rent_coefficient = 0.93 ** (self.machine[1] - 1)
-        base_fixed_costs = 600
+        base_fixed_costs = 1000
         # Для китайских станков
         if self.machinery['chinese'][0] == self.machine_quality['chinese']:
             if self.billets_produced[0] <= 10:

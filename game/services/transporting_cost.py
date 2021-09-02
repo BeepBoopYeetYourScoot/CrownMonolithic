@@ -140,7 +140,6 @@ transporting_cost = {
 }
 
 
-# FIXME В харде может быть 7 маклеров. Так как городов только 6, надо выяснять, как это работает
 def get_transporting_cost(brokers_count, broker_city, producer_city):
 	cities = ['IV', 'WS', 'TT', 'AD', 'NF', 'ET']
 	if brokers_count < 3 or brokers_count > 6:

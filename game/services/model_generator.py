@@ -1,9 +1,8 @@
 from game import models
 import random
 
-
-def city_generator(players_amount, brokers_amount):
-
+# Cities amount equals brokers amount
+def city_generator(brokers_amount):
 	cities = [
 		'IV',
 		'WS',
@@ -13,29 +12,97 @@ def city_generator(players_amount, brokers_amount):
 		'ET',
 	]
 	cities_for_iter = cities[:brokers_amount]
-	while players_amount > 0:
+	while True:
 		yield cities_for_iter.pop(random.randint(0, len(cities_for_iter) - 1))
-		players_amount -= 1
 		if len(cities_for_iter) == 0:
 			cities_for_iter = cities[:brokers_amount]
 
 
-def generate_role_instances(session_instance):
-	players = session_instance.player.all()
-	# city = city_generator(players.count(), session_instance.number_of_brokers)
-	cities = ['IV', 'WS', 'TT', 'AD', 'NF', 'ET']
+def name_generator():
+	names = [
+		"Арнольд",
+		"Антэйн",
+		"Артур",
+		"Бернард",
+		"Беррак",
+		"Брэйди",
+		"Вильям",
+		"Генрих",
+		"Геральд",
+		"Густав",
+		"Двэйн",
+		"Донован",
+		"Жак",
+		"Карл",
+		"Кевин",
+		"Конан",
+		"Летард",
+		"Леонард",
+		"Людвиг",
+		"Малоун",
+		"Модест",
+		"Мерфи",
+		"Отто",
+		"Оскар",
+		"Риган",
+		"Ричард",
+		"Роберт",
+		"Ролан",
+		"Уиллиам",
+		"Фалько",
+		"Фицрой",
+		"Харбин",
+		"Эдгар",
+		"Эдмунд",
+		"Эраст",
+		"Эдвард",
+	]
+	random.shuffle(names)
+	for name in names:
+		yield name
 
-	for player in players:
-		# FIXME це пиздец
-		player.city = random.choice(cities[:session_instance.number_of_brokers])
-		if player.role == 'producer':
-			player.balance = session_instance.producer_starting_balance
-			player.save()
-			models.ProducerModel.objects.create(
-				player=player).save()
-		else:
-			player.balance = session_instance.broker_starting_balance
-			player.save()
-			models.BrokerModel.objects.create(
-				player=player
-			).save()
+
+city_names = {
+	'IV': 'ivo',
+	'WS': 'wemshire',
+	'TT': 'tortuga',
+	'AD': 'alendor',
+	'NF': 'neverfall',
+	'ET': 'etrua',
+}
+
+city_broker_names = {
+	'IV': 'Мр. Смит',
+	'WS': 'Мр. Ли',
+	'TT': 'Мр. Джонсон',
+	'AD': 'Мр. Майклсон',
+	'NF': 'Мр. Эриксон',
+	'ET': 'Мр. Робертс',
+}
+
+
+def generate_role_instances(session_instance):
+	producer_players = session_instance.player.filter(role='producer')
+	broker_players = session_instance.player.filter(role='broker')
+	city = city_generator(session_instance.number_of_brokers)
+	name_gen = name_generator()
+	number_of_brokers = session_instance.number_of_brokers
+	for broker_player in broker_players:
+		broker_player.city = next(city)
+		broker_player.map_url = f"/static/{number_of_brokers}_brokers/map.jpg"
+		broker_player.balance = session_instance.broker_starting_balance
+		broker_player.logistics_url = f"/static/broker" \
+									  f"/{city_names[broker_player.city]}.png"
+		broker_player.role_name = city_broker_names[broker_player.city]
+		broker_player.save()
+		models.BrokerModel.objects.create(player=broker_player).save()
+
+	for producer_player in producer_players:
+		producer_player.city = next(city)
+		producer_player.map_url = f"/static/{number_of_brokers}_brokers/map.jpg"
+		producer_player.balance = session_instance.producer_starting_balance
+		producer_player.logistics_url = f"/static/{number_of_brokers}_brokers/producer/" \
+							 f"{city_names[producer_player.city]}.png"
+		producer_player.role_name = next(name_gen)
+		producer_player.save()
+		models.ProducerModel.objects.create(player=producer_player).save()
