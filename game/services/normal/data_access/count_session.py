@@ -4,7 +4,6 @@ import threading
 
 from game.models import PlayerModel, TransactionModel, BalanceDetail, \
     BalanceRequest, TurnTime
-from .timer import timer
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
