@@ -1,6 +1,4 @@
-import json
 import random
-import threading
 
 from game.models import PlayerModel, TransactionModel, BalanceDetail, \
     BalanceRequest, TurnTime
@@ -55,7 +53,6 @@ def save_producer(producer_class_instance, db_producer_player) -> None:
     balance_detail_instance = BalanceDetail.objects.get_or_create(player=db_producer_player)
     detail_serializer = ProducerBalanceDetailSerializer(
         balance_detail_instance, data=producer_class_instance.balance_detail)
-    print(producer_class_instance.balance_detail)
 
     detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором производителя')
     db_producer_player.save()

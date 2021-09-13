@@ -289,21 +289,6 @@ class ProducerBalanceDetailSerializer(serializers.ModelSerializer):
             'end_turn_balance'
         ]
 
-    def create(self, validated_data):
-        return BalanceDetail.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        instance.start_turn_balance = validated_data.get('start_turn_balance', instance.start_turn_balance)
-        instance.fixed = validated_data.get('fixed', instance.fixed)
-        instance.variable = validated_data.get('variable', instance.variable)
-        instance.materials = validated_data.get('materials', instance.materials)
-        instance.logistics = validated_data.get('logistics', instance.logistics)
-        instance.negotiation = validated_data.get('negotiation', instance.negotiation)
-        instance.proceeds = validated_data.get('proceeds', instance.proceeds)
-        instance.storage = validated_data.get('storage', instance.storage)
-        instance.end_turn_balance = validated_data.get('end_turn_balance', instance.end_turn_balance)
-        return instance
-
 
 class BalanceRequestSerializer(serializers.ModelSerializer):
     broker_nickname = serializers.CharField()
@@ -315,10 +300,3 @@ class BalanceRequestSerializer(serializers.ModelSerializer):
             'id',
             'turn'
         ]
-
-
-class ProducerBalanceSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    nickname = serializers.CharField()
-    role_name = serializers.CharField()
-    balance = serializers.IntegerField()
