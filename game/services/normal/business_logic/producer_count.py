@@ -70,6 +70,7 @@ def count_logistics_costs(producer_classes: List[ProducerNormal]):
                 producer.status = 'LOGISTICS'
                 producer.is_bankrupt = True
                 break
+            transaction.delivered = transaction.quantity
 
         producer.balance_detail.negotiation = negotiation_costs
         producer.balance_detail.logistics = logistics_costs
@@ -82,6 +83,7 @@ def count_proceeds(producer_classes: List[ProducerNormal]):
             continue
         producer.balance += producer.count_proceeds()
         producer.balance_detail.proceeds = producer.count_proceeds()
+    print([pr.balance for pr in producer_classes])
 
 
 def count_storage_costs(producer_classes: List[ProducerNormal]):

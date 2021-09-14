@@ -24,7 +24,7 @@ def check_shipments(broker_classes: List[BrokerNormal], producer_classes: List[P
             # (не смог произвести)
             producer = None
             for prod in producer_classes:
-                if prod.id == transaction.producer_id:
+                if prod.id == transaction.producer:
                     producer = prod
             if producer.is_bankrupt:
                 continue
