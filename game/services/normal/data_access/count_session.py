@@ -8,7 +8,6 @@ from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
 
-
 PLAYER_NUMBER_PRESET = (
     ('12-14', '12-14 Игроков'),
     ('15-20', '15-20 Игроков'),
@@ -36,37 +35,6 @@ def generate_broker(db_broker_player, broker_class) -> BrokerNormal:
     broker = broker_class(db_broker_player.balance)
     broker.id = db_broker_player.broker.id
     return broker
-
-
-def save_producer(producer_class: ProducerNormal, producer_player_model: PlayerModel) -> None:
-    """
-    Сохраняет результат пересчёта производителя в БД
-    """
-    producer_player_model.balance = producer_class.balance
-    producer_player_model.is_bankrupt = producer_class.is_bankrupt
-    producer_player_model.producer.billets_produced = producer_class.billets_produced
-    producer_player_model.producer.billets_stored = producer_class.billets_stored
-    producer_player_model.status = producer_class.status
-
-    producer_player_model.save()
-    producer_player_model.producer.save()
-    producer_class.balance_detail.save()
-    return
-
-
-def save_broker(broker_class: BrokerNormal, broker_player_model: PlayerModel) -> None:
-    """
-    Сохраняет результат пересчёта маклера в БД.
-    """
-    broker_player_model.balance = broker_class.balance
-    broker_player_model.is_bankrupt = broker_class.is_bankrupt
-    broker_player_model.status = broker_class.status
-    broker_player_model.broker.code = random.randint(111111, 999999)
-
-    broker_player_model.save()
-    broker_player_model.broker.save()
-    broker_class.balance_detail.save()
-    return
 
 
 def start_session(session):
@@ -114,10 +82,7 @@ def start_session(session):
 
     session_instance.current_turn = 1
     session_instance.status = 'started'
-    # turn_time.status = 'negotiation'
     session_instance.save()
-    # turn_time.save()
-    # timer(session_instance).start()
 
 
 def change_phase(session_instance, phase: str) -> None:
@@ -198,6 +163,37 @@ def finish_session(session_instance):
         player.position = place + 1
         player.save()
     session_instance.save()
+    return
+
+
+def save_producer(producer_class: ProducerNormal, producer_player_model: PlayerModel) -> None:
+    """
+    Сохраняет результат пересчёта производителя в БД
+    """
+    producer_player_model.balance = producer_class.balance
+    producer_player_model.is_bankrupt = producer_class.is_bankrupt
+    producer_player_model.producer.billets_produced = producer_class.billets_produced
+    producer_player_model.producer.billets_stored = producer_class.billets_stored
+    producer_player_model.status = producer_class.status
+
+    producer_player_model.save()
+    producer_player_model.producer.save()
+    producer_class.balance_detail.save()
+    return
+
+
+def save_broker(broker_class: BrokerNormal, broker_player_model: PlayerModel) -> None:
+    """
+    Сохраняет результат пересчёта маклера в БД.
+    """
+    broker_player_model.balance = broker_class.balance
+    broker_player_model.is_bankrupt = broker_class.is_bankrupt
+    broker_player_model.status = broker_class.status
+    broker_player_model.broker.code = random.randint(111111, 999999)
+
+    broker_player_model.save()
+    broker_player_model.broker.save()
+    broker_class.balance_detail.save()
     return
 
 
@@ -359,6 +355,9 @@ def generate_code() -> int:
 
 
 def generate_turn_time(session_instance):
+    """
+    Генерирует модели Времени на ход
+    """
     turn = 1
     while turn <= session_instance.turn_count:
         TurnTime.objects.create(session=session_instance, turn=turn)
