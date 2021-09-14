@@ -84,7 +84,6 @@ def start_session(session):
             session_instance.broker_starting_balance = 8000
         if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 4000
-        session_instance.save()
     elif 15 <= number_of_players <= 20:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 4
@@ -92,7 +91,6 @@ def start_session(session):
             session_instance.broker_starting_balance = 12000
         if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
-        session_instance.save()
     elif 21 <= number_of_players <= 25:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 5
@@ -100,7 +98,6 @@ def start_session(session):
             session_instance.broker_starting_balance = 12000
         if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
-        session_instance.save()
     elif 26 <= number_of_players <= 35:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 6
@@ -108,7 +105,6 @@ def start_session(session):
             session_instance.broker_starting_balance = 12000
         if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
-        session_instance.save()
 
     distribute_roles(session_instance)
     generate_role_instances(session_instance)
@@ -142,8 +138,9 @@ def count_session(session_instance: SessionModel) -> None:
     """
     assert session_instance.pk is not None
     assert session_instance.status == 'started', 'Session has not started'
-    assert session_instance.turn_phase == 'transaction', \
-        'Session is in the wrong phase'
+    if session_instance.turn_phase == 'negotiation':
+        change_phase(session_instance, 'transaction')
+        return
 
     producer_player_models = session_instance.player.filter(role='producer', is_bankrupt=False)
     broker_player_models = session_instance.player.filter(role='broker', is_bankrupt=False)

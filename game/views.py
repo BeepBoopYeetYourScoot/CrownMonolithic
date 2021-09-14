@@ -5,35 +5,22 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from .models import SessionModel, PlayerModel, ProducerModel, TransactionModel, \
     BrokerModel, BalanceRequest
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from . import serializers
-from .permissions import IsThePlayer
 from rest_framework.decorators import action
 
 from authorization.services.create_player import create_player
 from authorization.permissions import IsPlayer
 from authorization.serializers import PlayerWithTokenSerializer
-from game.services.normal.data_access.count_session import change_phase, \
-    start_session, count_session, produce_billets, send_trade, cancel_trade, \
+from game.services.normal.data_access.count_session import start_session, count_session, produce_billets, send_trade, \
+    cancel_trade, \
     end_turn, cancel_end_turn, accept_transaction, deny_transaction, \
     create_balance_request, accept_balance_request, \
     deny_balance_request, finish_session
-
-from websockets.services import finish_turn_by_players
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 import requests
-
-
-# Декоратор @action. Дефолтные значениея:
-# methods - GET
-# url_path - НАЗВАНИЕ_МЕТОДА
-# url_name - НАЗВАНИЕ-МЕТОДА
-# detail - None; обязательное поле; устанавливает, применяется ли роут для retrieve (True) или list (False)
-
-# BASE_URL = 'http://0.0.0.0:8000/change/'
 
 
 class SessionAdminViewSet(ModelViewSet):
@@ -43,8 +30,6 @@ class SessionAdminViewSet(ModelViewSet):
     queryset = SessionModel.objects.all()
     serializer_class = serializers.SessionAdminSerializer
 
-    # permission_classes = [IsAdminUser]
-
     @action(methods=['GET'], detail=True, url_path='start-session', permission_classes=[])
     def start_session(self, request, pk):
         """
@@ -52,7 +37,6 @@ class SessionAdminViewSet(ModelViewSet):
         """
         session = SessionModel.objects.get(pk=pk)
         start_session(session)
-        # requests.get('http://0.0.0.0:8000/start/')
         return Response({'detail': 'Session started'}, status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True, renderer_classes=[JSONRenderer], url_path='count-session',
@@ -428,7 +412,6 @@ class BrokerViewSet(ModelViewSet):
             status='accepted',
             turn=request.player.session.current_turn
         ).values('producer')
-        # TODO: проверить не лучше ли через annotate
         producer_players = PlayerModel.objects.filter(
             session=request.player.session,
             producer__in=Subquery(requests)
