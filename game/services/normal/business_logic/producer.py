@@ -1,5 +1,5 @@
 from game.services.producer import AbstractProducer
-from game.models import ProducerModel
+from game.models import PlayerModel
 
 
 class ProducerNormal(AbstractProducer):
@@ -7,16 +7,16 @@ class ProducerNormal(AbstractProducer):
     Класс производителя для версии "Нормал"
     """
 
-    def __init__(self, producer: ProducerModel):
-        self.id = producer.id
-        self.balance = producer.player.balance
-        self.billets_produced = producer.billets_produced
-        self.billets_stored = producer.billets_stored
+    def __init__(self, producer_player: PlayerModel):
+        self.id = producer_player.id
+        self.balance = producer_player.balance
+        self.billets_produced = producer_player.producer.billets_produced
+        self.billets_stored = producer_player.producer.billets_stored
         self.billets_cost = 30
         self.transactions = []
         self.is_bankrupt = False
         self.status = 'OK'
-        self.balance_detail = producer.player.detail
+        self.balance_detail = producer_player.detail
 
     def count_fixed_costs(self) -> int:
         """

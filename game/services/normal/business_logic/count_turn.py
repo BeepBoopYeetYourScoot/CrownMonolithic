@@ -70,6 +70,6 @@ def check_fixed_costs_bankruptcy(producer_classes, broker_classes):
             producer.status = 'FIXED'
 
     for broker in broker_classes:
-        if broker.balance - broker.count_fixed_costs() < 0:
+        if broker.balance - broker.fixed_costs < 0:
             broker.is_bankrupt = True
             broker.status = 'FIXED'

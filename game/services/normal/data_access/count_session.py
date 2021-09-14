@@ -50,7 +50,7 @@ def save_producer(producer_class: ProducerNormal, producer_player_model: PlayerM
 
     producer_player_model.save()
     producer_player_model.producer.save()
-    producer_player_model.detail.save()
+    producer_class.balance_detail.save()
     return
 
 
@@ -61,11 +61,11 @@ def save_broker(broker_class: BrokerNormal, broker_player_model: PlayerModel) ->
     broker_player_model.balance = broker_class.balance
     broker_player_model.is_bankrupt = broker_class.is_bankrupt
     broker_player_model.status = broker_class.status
-
     broker_player_model.broker.code = random.randint(111111, 999999)
+
     broker_player_model.save()
     broker_player_model.broker.save()
-    broker_player_model.detail.save()
+    broker_class.balance_detail.save()
     return
 
 
@@ -145,8 +145,8 @@ def count_session(session_instance: SessionModel) -> None:
     assert session_instance.turn_phase == 'transaction', \
         'Session is in the wrong phase'
 
-    producer_player_models = session_instance.player.filter(role='producer')
-    broker_player_models = session_instance.player.filter(role='broker')
+    producer_player_models = session_instance.player.filter(role='producer', is_bankrupt=False)
+    broker_player_models = session_instance.player.filter(role='broker', is_bankrupt=False)
 
     transaction_models = session_instance.transaction.filter(
         turn=session_instance.current_turn,
@@ -170,12 +170,12 @@ def count_session(session_instance: SessionModel) -> None:
 
     for producer_class in producer_classes:
         for producer_player_model in producer_player_models:
-            if producer_player_model.producer.id == producer_class.id:
+            if producer_player_model.id == producer_class.id:
                 save_producer(producer_class, producer_player_model)
 
     for broker_class in broker_classes:
         for broker_player_model in broker_player_models:
-            if broker_player_model.broker.id == broker_class.id:
+            if broker_player_model.id == broker_class.id:
                 save_broker(broker_class, broker_player_model)
 
     session_instance.crown_balance = crown_balance_updated

@@ -95,7 +95,8 @@ def generate_role_instances(session_instance):
 									  f"/{city_names[broker_player.city]}.png"
 		broker_player.role_name = city_broker_names[broker_player.city]
 		broker_player.save()
-		models.BrokerModel.objects.create(player=broker_player).save()
+		models.BrokerModel.objects.create(player=broker_player)
+		models.BalanceDetail.objects.create(player=broker_player)
 
 	for producer_player in producer_players:
 		producer_player.city = next(city)
@@ -105,4 +106,5 @@ def generate_role_instances(session_instance):
 							 f"{city_names[producer_player.city]}.png"
 		producer_player.role_name = next(name_gen)
 		producer_player.save()
-		models.ProducerModel.objects.create(player=producer_player).save()
+		models.ProducerModel.objects.create(player=producer_player)
+		models.BalanceDetail.objects.create(player=producer_player)
