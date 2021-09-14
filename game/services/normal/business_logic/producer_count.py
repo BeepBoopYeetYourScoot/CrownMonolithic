@@ -4,6 +4,9 @@ from game.services.normal.business_logic.producer import ProducerNormal
 
 
 def count_fixed_costs(producer_classes: List[ProducerNormal]):
+    """
+    Списывает с производителей постоянные расходы
+    """
     for producer in producer_classes:
         if producer.is_bankrupt:
             continue
@@ -15,6 +18,9 @@ def count_fixed_costs(producer_classes: List[ProducerNormal]):
 
 
 def count_variable_costs(producer_classes: List[ProducerNormal]):
+    """
+    Списывает с производителей переменные расходы на производство заготовок
+    """
     for producer in producer_classes:
         if producer.is_bankrupt:
             continue
@@ -30,9 +36,8 @@ def count_variable_costs(producer_classes: List[ProducerNormal]):
 
 def check_shipments(producer_classes: List[ProducerNormal]):
     """
-    Проверяет, сколько заготовок может довезти производитель и сколько заготовок ему нужно довезти.
-    На данном этапе нужно устанавливать штрафы за недобросовестность
-    и отдавать маклерам то количество заготовок, которое произвёл производитель
+    Устанавливает Производителю статус банкротства "Недобросовестный",
+    если Производитель хотел продать больше заготовок, чем произвёл
     """
     for producer in producer_classes:
         if producer.is_bankrupt:
@@ -56,6 +61,9 @@ def check_shipments(producer_classes: List[ProducerNormal]):
 
 
 def count_logistics_costs(producer_classes: List[ProducerNormal]):
+    """
+    Списывает с Производителей затраты на доставку заготовок
+    """
     for producer in producer_classes:
         if producer.is_bankrupt:
             continue
@@ -77,16 +85,21 @@ def count_logistics_costs(producer_classes: List[ProducerNormal]):
 
 
 def count_proceeds(producer_classes: List[ProducerNormal]):
+    """
+    Начисляет Производителям выручку за продажу заготовок
+    """
     # Расчёт выручки
     for producer in producer_classes:
         if producer.is_bankrupt:
             continue
         producer.balance += producer.count_proceeds()
         producer.balance_detail.proceeds = producer.count_proceeds()
-    print([pr.balance for pr in producer_classes])
 
 
 def count_storage_costs(producer_classes: List[ProducerNormal]):
+    """
+    Списывает с Производителей расходы на хранение заготовок
+    """
     for producer in producer_classes:
         if producer.is_bankrupt:
             continue

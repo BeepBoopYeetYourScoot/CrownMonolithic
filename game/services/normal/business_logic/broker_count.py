@@ -4,6 +4,9 @@ from game.services.normal.business_logic.producer import ProducerNormal
 
 
 def count_fixed_costs(broker_classes: List[BrokerNormal]):
+    """
+    Списывает с Маклеров постоянные расходы
+    """
     for broker in broker_classes:
         if broker.is_bankrupt:
             continue
@@ -36,7 +39,10 @@ def check_shipments(broker_classes: List[BrokerNormal], producer_classes: List[P
             transaction.paid = True
 
 
-def count_variable_costs(broker_classes: List[BrokerNormal], producer_classes: List[ProducerNormal]):
+def count_variable_costs(broker_classes: List[BrokerNormal]):
+    """
+    Списывает с Маклеров расходы на покупку заготовок
+    """
     for broker in broker_classes:
         if broker.is_bankrupt:
             continue
@@ -57,6 +63,9 @@ def count_variable_costs(broker_classes: List[BrokerNormal], producer_classes: L
 
 
 def count_proceeds(broker_classes: List[BrokerNormal], market_price):
+    """
+    Считает выручку Маклеров
+    """
     for broker in broker_classes:
         broker.balance += broker.count_proceeds(market_price)
 

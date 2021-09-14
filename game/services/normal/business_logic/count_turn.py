@@ -40,7 +40,7 @@ def count_turn(producer_classes: List[ProducerNormal],
 
     producers.count_logistics_costs(producer_classes)
 
-    brokers.count_variable_costs(broker_classes, producer_classes)
+    brokers.count_variable_costs(broker_classes)
 
     # Вычисление рыночной цены 1 заготовки
     crown = CrownNormal(crown_balance)
@@ -64,6 +64,9 @@ def count_turn(producer_classes: List[ProducerNormal],
 
 
 def check_fixed_costs_bankruptcy(producer_classes, broker_classes):
+    """
+    Банкротит игроков, если они не могут оплатить постоянные расходы следующего хода
+    """
     for producer in producer_classes:
         if producer.balance - producer.count_fixed_costs() < 0:
             producer.is_bankrupt = True
