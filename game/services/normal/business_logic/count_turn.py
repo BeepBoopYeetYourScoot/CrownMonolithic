@@ -1,95 +1,75 @@
+from typing import List
+
+from .broker import BrokerNormal
 from .crown import CrownNormal
+from .producer import ProducerNormal
+from .transaction import TransactionNormal
+from game.services.normal.business_logic import producer_count as producers
+from game.services.normal.business_logic import broker_count as brokers
 
 
-def count_turn(producer_list: list, broker_list: list, transaction_list: list, crown_balance: float) -> float:
+# FIXME проверить стыковку баланса Короны (я поставил int, а там был float)
+def count_turn(producer_classes: List[ProducerNormal],
+               broker_classes: List[BrokerNormal],
+               transaction_classes: List[TransactionNormal],
+               crown_balance: int) -> int:
     """
     Принимает на вход массивы объектов производителей и маклеров.
     Изменяет свойства объектов, полученных на входе.
     Возвращает баланс Короны на следующий ход
     """
-    crown = CrownNormal()
-    crown.balance = crown_balance
-    market_volume = 0
-    for transaction in transaction_list:
-        market_volume += transaction['terms']['quantity']
-    market_price = crown.count_market_price(market_volume)
 
-    # Пересчёт постоянных затрат
-    for producer in producer_list:
-        if producer.is_bankrupt:
-            continue
-        producer.balance -= producer.count_fixed_costs()
-        producer.balance_detail['fixed'] = producer.count_fixed_costs()
-        if producer.balance < 0:
-            producer.status = 'FIXED'
-            producer.is_bankrupt = True
-    for broker in broker_list:
-        broker.balance_detail['crown_balance'] = crown.balance
-        if broker.is_bankrupt:
-            continue
-        broker.balance -= broker.fixed_costs
-        if broker.balance < 0:
-            broker.status = 'FIXED'
-            broker.is_bankrupt = True
+    for producer in producer_classes:
+        producer.transactions = [tr for tr in transaction_classes if tr.producer == producer.id]
+
+    for broker in broker_classes:
+        broker.transactions = [tr for tr in transaction_classes if tr.broker == broker.id]
+        broker.balance_detail.crown_balance = crown_balance
+
+    producers.count_fixed_costs(producer_classes)
+    brokers.count_fixed_costs(broker_classes)
 
     # Пересчёт переменных затрат
-    for producer in producer_list:
-        if producer.is_bankrupt:
-            continue
+    producers.count_variable_costs(producer_classes)
 
-        variable_costs_summarized = producer.count_variable_costs() + producer.count_negotiation_costs() \
-                                    + producer.count_logistics_costs()
-        producer.balance -= variable_costs_summarized
-        producer.balance_detail['variable'] = producer.count_variable_costs()
-        producer.balance_detail['materials'] = producer.billets_cost * producer.billets_produced
-        producer.balance_detail['logistics'] = producer.count_logistics_costs()
-        producer.balance_detail['negotiation'] = producer.count_negotiation_costs()
-        if producer.balance < 0:
-            producer.status = 'VARIABLE'
-            producer.is_bankrupt = True
+    # Проверка, могут ли маклеры оплатить свои сделки
+    brokers.check_shipments(broker_classes, producer_classes)
 
-    for broker in broker_list:
-        if broker.is_bankrupt:
-            continue
-        for prod in producer_list:
-            broker.disrupt_transaction(prod)
-        broker.balance -= broker.count_purchase_costs()
-        if broker.balance < 0:
-            broker.status = 'VARIABLE'
-            broker.is_bankrupt = True
-        broker.add_shipments()
-        broker.balance_detail['billets_sold'] = broker.shipment
+    # Проверка производителей на недобросовестность
+    producers.check_shipments(producer_classes)
 
-    # Расчёт прибыли
-    for producer in producer_list:
-        if producer.is_bankrupt:
-            continue
-        producer.balance += producer.count_proceeds()
-        producer.balance_detail['proceeds'] = producer.count_proceeds()
+    producers.count_logistics_costs(producer_classes)
 
-    for broker in broker_list:
-        if broker.is_bankrupt:
-            continue
-        broker.balance += broker.count_proceeds(market_price)
-        broker.balance_detail['proceeds'] = broker.count_proceeds(market_price)
-        broker.balance_detail['end_turn_balance'] = broker.balance
+    brokers.count_variable_costs(broker_classes, producer_classes)
+
+    # Вычисление рыночной цены 1 заготовки
+    crown = CrownNormal(crown_balance)
+
+    market_volume = sum([tr.delivered for tr in transaction_classes if tr.paid])
+
+    market_price = crown.count_market_price(market_volume)
+
+    producers.count_proceeds(producer_classes)
+
+    brokers.count_proceeds(broker_classes, market_price)
 
     # Расчёт расходов на хранение и отправка на хранение заготовок
-    for producer in producer_list:
-        if producer.is_bankrupt:
-            continue
-        producer.store_billets()
-        if producer.billets_stored < 0:
-            producer.status = 'UNTRUSTED'
-            producer.is_bankrupt = True
-        producer.balance -= producer.count_storage_costs()
-        producer.balance_detail['storage'] = producer.count_storage_costs()
-        producer.balance_detail['end_turn_balance'] = producer.balance
-        if producer.balance < 0:
-            producer.status = 'STORAGE'
-            producer.is_bankrupt = True
-            continue
+    producers.count_storage_costs(producer_classes)
+
+    check_fixed_costs_bankruptcy(producer_classes, broker_classes)
 
     crown.update_balance(market_volume)
 
     return crown.balance
+
+
+def check_fixed_costs_bankruptcy(producer_classes, broker_classes):
+    for producer in producer_classes:
+        if producer.balance - producer.count_fixed_costs() < 0:
+            producer.is_bankrupt = True
+            producer.status = 'FIXED'
+
+    for broker in broker_classes:
+        if broker.balance - broker.count_fixed_costs() < 0:
+            broker.is_bankrupt = True
+            broker.status = 'FIXED'

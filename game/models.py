@@ -72,7 +72,7 @@ class PlayerModel(PlayerBaseModel):
         ('NF', "Неверфол"),
         ('ET', "Этруа")
     )
-
+    session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, related_name='player')
     nickname = models.CharField(max_length=100, verbose_name='Никнейм')
     role = models.CharField(max_length=20, choices=ROLES, verbose_name='Игровая роль',
                             default='unassigned', editable=True)
@@ -225,9 +225,7 @@ class BalanceDetail(models.Model):
     end_turn_balance = models.IntegerField(default=0)
 
 
-
 class TurnTime(models.Model):
-
     TIMER_STATUS = (
         ('initialized', 'Инициализирован'),
         ('negotiation', 'Фаза переговоров'),

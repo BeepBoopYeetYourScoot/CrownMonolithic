@@ -1,4 +1,5 @@
 from game.services.producer import AbstractProducer
+from game.models import ProducerModel
 
 
 class ProducerNormal(AbstractProducer):
@@ -6,28 +7,18 @@ class ProducerNormal(AbstractProducer):
     Класс производителя для версии "Нормал"
     """
 
-    def __init__(self, balance):
-        self.id = 0
-        self.balance = balance
-        self.billets_produced = 0
-        self.billets_stored = 0
+    def __init__(self, producer: ProducerModel):
+        self.id = producer.id
+        self.balance = producer.player.balance
+        self.billets_produced = producer.billets_produced
+        self.billets_stored = producer.billets_stored
         self.billets_cost = 30
         self.transactions = []
         self.is_bankrupt = False
         self.status = 'OK'
-        self.balance_detail = {
-            'start_turn_balance': self.balance,
-            'fixed': 'Не записано',
-            'variable': 'Не записано',
-            'materials': 'Не записано',
-            'logistics': 'Не записано',
-            'negotiation': 'Не записано',
-            'proceeds': 'Не записано',
-            'storage': 'Не записано',
-            'end_turn_balance': 'Не записано'
-        }
+        self.balance_detail = producer.player.detail
 
-    def count_fixed_costs(self) -> float:
+    def count_fixed_costs(self) -> int:
         """
         Считает постоянные затраты производителя в зависимости от числа производимых заготовок
         """
@@ -43,12 +34,13 @@ class ProducerNormal(AbstractProducer):
             fixed_costs = 4000
         else:
             fixed_costs = 15000
-        return fixed_costs
+        return int(fixed_costs)
 
     def count_variable_costs(self) -> int:
         """
         Считает переменные затраты в зависимости от числа производимых заготовок
         """
+        op_ex = None
         if self.billets_produced <= 10:
             op_ex = 80 * self.billets_produced
         elif self.billets_produced <= 20:
@@ -74,29 +66,25 @@ class ProducerNormal(AbstractProducer):
         """
         costs = 0
         for transaction in self.transactions:
-            costs += transaction['terms']['quantity'] * transaction['terms']['transporting_cost']
+            if transaction.paid:
+                costs += transaction.quantity * transaction.transporting_cost
         return costs
 
     def count_negotiation_costs(self) -> int:
         """
-        Считает затраты на проведение переговоров
+        Считает затраты на проведение переговоров.
+        Учитывает только сделки, которые смогли оплатить маклеры
         """
-        return len(self.transactions) * 20
-
-    def make_deal(self, deal: dict) -> None:
-        """
-        Формирует сделку с маклером
-        """
-        self.transactions.append(deal)
-        return
+        return len([tr for tr in self.transactions if tr.paid]) * 20
 
     def count_proceeds(self) -> int:
         """
-        Считает прибыль от продажи заготовок
+        Считает выручку от продажи заготовок
         """
         proceeds = 0
         for transaction in self.transactions:
-            proceeds += transaction['terms']['quantity'] * transaction['terms']['price']
+            if transaction.paid:
+                proceeds += transaction.delivered * transaction.price
         return proceeds
 
     @property
@@ -104,9 +92,7 @@ class ProducerNormal(AbstractProducer):
         """
         Заготовки, оставшиеся у производителя после совершения сделок
         """
-        billets_requested = 0
-        for transaction in self.transactions:
-            billets_requested += transaction['terms']['quantity']
+        billets_requested = sum([tr.delivered for tr in self.transactions if tr.paid])
         billets_left = self.billets_stored + self.billets_produced - billets_requested
         return billets_left
 
@@ -116,11 +102,4 @@ class ProducerNormal(AbstractProducer):
         """
         self.billets_stored = self.billets_left
         self.billets_produced = 0
-        return
-
-    def produce(self, billet_amount) -> None:
-        """
-        Отправляет заготовки в прозизводство
-        """
-        self.billets_produced = billet_amount
         return

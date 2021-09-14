@@ -1,15 +1,13 @@
 import random
 
-from game.models import PlayerModel, TransactionModel, BalanceDetail, \
-    BalanceRequest, TurnTime
+from game.models import PlayerModel, TransactionModel, BalanceRequest, TurnTime, SessionModel
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
 from ..business_logic.transaction import TransactionNormal as Transaction
 from game.services.model_generator import generate_role_instances
 from game.services.role_randomizer import distribute_roles
-from game.serializers import ProducerBalanceDetailSerializer, \
-    BrokerBalanceDetailSerializer
+
 
 PLAYER_NUMBER_PRESET = (
     ('12-14', '12-14 Игроков'),
@@ -40,42 +38,34 @@ def generate_broker(db_broker_player, broker_class) -> BrokerNormal:
     return broker
 
 
-def save_producer(producer_class_instance, db_producer_player) -> None:
+def save_producer(producer_class: ProducerNormal, producer_player_model: PlayerModel) -> None:
     """
     Сохраняет результат пересчёта производителя в БД
     """
-    db_producer_player.balance = producer_class_instance.balance
-    db_producer_player.is_bankrupt = producer_class_instance.is_bankrupt
-    db_producer_player.producer.billets_produced = producer_class_instance.billets_produced
-    db_producer_player.producer.billets_stored = producer_class_instance.billets_stored
-    db_producer_player.status = producer_class_instance.status
+    producer_player_model.balance = producer_class.balance
+    producer_player_model.is_bankrupt = producer_class.is_bankrupt
+    producer_player_model.producer.billets_produced = producer_class.billets_produced
+    producer_player_model.producer.billets_stored = producer_class.billets_stored
+    producer_player_model.status = producer_class.status
 
-    balance_detail_instance = BalanceDetail.objects.get_or_create(player=db_producer_player)
-    detail_serializer = ProducerBalanceDetailSerializer(
-        balance_detail_instance, data=producer_class_instance.balance_detail)
-
-    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором производителя')
-    db_producer_player.save()
-    db_producer_player.producer.save()
+    producer_player_model.save()
+    producer_player_model.producer.save()
+    producer_player_model.detail.save()
     return
 
 
-def save_broker(broker_class_instance, db_broker_player) -> None:
+def save_broker(broker_class: BrokerNormal, broker_player_model: PlayerModel) -> None:
     """
     Сохраняет результат пересчёта маклера в БД.
     """
-    db_broker_player.balance = broker_class_instance.balance
-    db_broker_player.is_bankrupt = broker_class_instance.is_bankrupt
-    db_broker_player.status = broker_class_instance.status
+    broker_player_model.balance = broker_class.balance
+    broker_player_model.is_bankrupt = broker_class.is_bankrupt
+    broker_player_model.status = broker_class.status
 
-    balance_detail_instance, _ = BalanceDetail.objects.get_or_create(player=db_broker_player)
-    detail_serializer = BrokerBalanceDetailSerializer(
-        balance_detail_instance, data=broker_class_instance.balance_detail)
-    detail_serializer.save() if detail_serializer.is_valid() else print('Проблема с сериализатором маклера')
-
-    db_broker_player.broker.code = random.randint(111111, 999999)
-    db_broker_player.save()
-    db_broker_player.broker.save()
+    broker_player_model.broker.code = random.randint(111111, 999999)
+    broker_player_model.save()
+    broker_player_model.broker.save()
+    broker_player_model.detail.save()
     return
 
 
@@ -111,17 +101,9 @@ def start_session(session):
         if not session_instance.producer_starting_balance:
             session_instance.producer_starting_balance = 6000
         session_instance.save()
-    elif 26 <= number_of_players <= 30:
+    elif 26 <= number_of_players <= 35:
         if not session_instance.number_of_brokers:
             session_instance.number_of_brokers = 6
-        if not session_instance.broker_starting_balance:
-            session_instance.broker_starting_balance = 12000
-        if not session_instance.producer_starting_balance:
-            session_instance.producer_starting_balance = 6000
-        session_instance.save()
-    elif 31 <= number_of_players <= 35:
-        if not session_instance.number_of_brokers:
-            session_instance.number_of_brokers = 7
         if not session_instance.broker_starting_balance:
             session_instance.broker_starting_balance = 12000
         if not session_instance.producer_starting_balance:
@@ -131,9 +113,9 @@ def start_session(session):
     distribute_roles(session_instance)
     generate_role_instances(session_instance)
     generate_turn_time(session_instance)
+    # Начальный баланс Короны считается от начального баланса Маклеров и количества Маклеров в сессии
     session_instance.crown_balance = session_instance.broker_starting_balance * session_instance.number_of_brokers / 4
 
-    # turn_time = session_instance.turn_time.filter(turn=1).first()
     session_instance.current_turn = 1
     session_instance.status = 'started'
     # turn_time.status = 'negotiation'
@@ -149,98 +131,63 @@ def change_phase(session_instance, phase: str) -> None:
     assert session_instance.pk is not None, 'Session doesn\'t exist'
     assert session_instance.status == 'started'
 
-    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
-    # turn_time.status = f'{phase}'
-
     session_instance.turn_phase = phase
     session_instance.save()
-    # turn_time.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
-    # timer(session_instance).start()
 
 
-def count_session(session) -> None:
+def count_session(session_instance: SessionModel) -> None:
     """
     Пересчитывает параметры игроков внутри указанной сессии.
     """
-    session_instance = session
-    # turn_time = session_instance.turn_time.filter(turn=session_instance.current_turn).first()
     assert session_instance.pk is not None
     assert session_instance.status == 'started', 'Session has not started'
     assert session_instance.turn_phase == 'transaction', \
         'Session is in the wrong phase'
 
-    players_queryset = session_instance.player.all()
-    for player in players_queryset:
-        player.ended_turn = False
-        player.save()
+    producer_player_models = session_instance.player.filter(role='producer')
+    broker_player_models = session_instance.player.filter(role='broker')
 
-    db_producers_queryset = players_queryset.filter(role='producer')
-    db_broker_queryset = players_queryset.filter(role='broker')
+    transaction_models = session_instance.transaction.filter(
+        turn=session_instance.current_turn,
+        status='accepted')
 
-    db_producers, db_brokers = [], []
-
-    for player in db_producers_queryset:
-        db_producers.append(player)
-    for player in db_broker_queryset:
-        db_brokers.append(player)
-
-    db_transactions = session_instance.transaction.filter(
-        turn=session_instance.current_turn, status='accepted')
-
-    producers, brokers, transactions = [], [], []
+    producer_classes, broker_classes, transaction_classes = [], [], []
 
     crown_balance = session_instance.crown_balance
 
-    for transaction in db_transactions:
-        terms = {
-            'quantity': transaction.quantity,
-            'price': transaction.price,
-            'transporting_cost': transaction.transporting_cost
-        }
-        deal = Transaction(transaction.producer.id, transaction.broker.id, terms).form_transaction()
-        transactions.append(deal)
+    for transaction in transaction_models:
+        transaction_classes.append(Transaction(transaction))
 
-    for db_producer in db_producers:
-        producer = generate_producer(db_producer, ProducerNormal)
-        for transaction in transactions:
-            if transaction['producer'] == producer.id:
-                producer.make_deal(transaction)
-        producers.append(producer)
+    for producer in producer_player_models:
+        producer_classes.append(ProducerNormal(producer))
 
-    for db_broker in db_brokers:
-        broker = generate_broker(db_broker, BrokerNormal)
-        for transaction in transactions:
-            if transaction['broker'] == broker.id:
-                broker.make_deal(transaction)
-        brokers.append(broker)
+    for broker in broker_player_models:
+        broker_classes.append(BrokerNormal(broker))
 
-    crown_balance_updated = count_turn(producers, brokers, transactions,
+    crown_balance_updated = count_turn(producer_classes, broker_classes, transaction_classes,
                                        crown_balance)
 
-    for producer in producers:
-        for db_producer in db_producers:
-            if db_producer.producer.id == producer.id:
-                save_producer(producer, db_producer)
+    for producer_class in producer_classes:
+        for producer_player_model in producer_player_models:
+            if producer_player_model.producer.id == producer_class.id:
+                save_producer(producer_class, producer_player_model)
 
-    for broker in brokers:
-        for db_broker in db_brokers:
-            if db_broker.broker.id == broker.id:
-                save_broker(broker, db_broker)
+    for broker_class in broker_classes:
+        for broker_player_model in broker_player_models:
+            if broker_player_model.broker.id == broker_class.id:
+                save_broker(broker_class, broker_player_model)
 
     session_instance.crown_balance = crown_balance_updated
 
     if session_instance.current_turn == session_instance.turn_count:
-        session_instance.status = 'finished'
-        session_instance.save()
+        finish_session(session_instance)
         return
 
     session_instance.current_turn += 1
     session_instance.turn_phase = 'negotiation'
 
     session_instance.save()
-    # turn_time.save()
-    # timer(session_instance).start()
 
 
 def finish_session(session_instance):
@@ -254,13 +201,7 @@ def finish_session(session_instance):
         player.position = place + 1
         player.save()
     session_instance.save()
-    # ws_services.notify_finish(session_instance.id)
     return
-
-
-# def return_started_status(session_instance):
-# 	assert session_instance.pk is not None
-# 	return session_instance.status
 
 
 def create_player(session_instance, nickname):
@@ -341,7 +282,7 @@ def accept_transaction(producer, broker):
         turn=broker.player.session.current_turn
     )
     if not transaction.status == 'active':
-        raise ValueError('Сделка уже рассмотренна!')
+        raise ValueError('Сделка уже рассмотрена!')
     transaction.status = 'accepted'
     transaction.save()
 
