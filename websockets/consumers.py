@@ -1,10 +1,6 @@
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
+from channels.generic.websocket import WebsocketConsumer, JsonWebsocketConsumer
 import json
-
-from game import models
-import datetime
-from . import services as ws_services
 
 """
 Пример нормально сконструированного Консумера
@@ -15,162 +11,191 @@ from services import get_timer, notifications
 """
 
 
-class SessionConsumer(WebsocketConsumer):
+class BrokerConsumer(JsonWebsocketConsumer):
     def connect(self):
-        self.session_id = self.scope['url_route']['kwargs']['session_id']
-        # TODO: Добавить логику проверки наличия сессии
-        self.group_name = f'session_{self.session_id}'
+        self.broker_id = self.scope['url_route']['kwargs']['broker_id']
+        self.group_name = f'broker_{self.broker_id}'
         async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
-        # async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                              {'type': 'change_player'})
-        # async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                              {'type': 'update_timer'})
         self.accept()
 
-    def disconnect(self, close_code):
-        async_to_sync(self.channel_layer.group_discard)(
-            self.group_name,
-            self.channel_name
-        )
+    def disconnect(self, code):
+        self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
+    def receive_json(self, content, **kwargs):
+        self.send_ws_signal(content['type'])
 
-        # Send message to room group
-        if text_data_json['type'] == 'change_player':
-            async_to_sync(self.channel_layer.group_send)(self.group_name,
-                                                         {"type": "change_player"})
-        # elif text_data_json['type'] == 'update_timer':
-        #     async_to_sync(self.channel_layer.group_send)(self.group_name,
-        #                                                  {'type': 'update_timer'})
-
-    def change_player(self, event):
-        """
-        Сигнализирует о любых изменениях в игроке: транзакции, баланс,
-        заготовки и т.д.
-        """
-        self.send(text_data=json.dumps({
-            'action': 'change_player'
-        }))
-
-    def update_timer(self, event):
-        """
-        При смене фазы или пересчёте сигналит обновить таймер
-        """
-        session_instance = models.SessionModel.objects.get(id=self.session_id)
-        if session_instance.turn_phase == 'negotiation':
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).negotiation_time
-        else:
-            turn_time = session_instance.turn_time.get(turn=session_instance.current_turn).transaction_time
-
-        self.send(text_data=json.dumps({
-            'action': 'update_timer',
-            'time': turn_time
-        }))
-
-
-class LobbyConsumer(WebsocketConsumer):
-    """
-    Консьюмер до старта сессии
-    """
-
-    def connect(self):
-        """
-        Соединение к группе 'find_session'
-        """
-        self.group_name = 'find_session'
-        async_to_sync(self.channel_layer.group_add)(
-            self.group_name,
-            self.channel_name
-        )
+    def send_ws_signal(self, signal: str):
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {
-                'type': 'update_lobby'
-            }
-        )
+                "type": f"{signal}",
+            })
+
+    def update_transactions(self, event):
+        self.send_json({'type': 'update_transactions'})
+
+    def next_phase(self, event):
+        self.send_json({'type': 'next_phase'})
+
+    def next_turn(self, event):
+        self.send_json({'type': 'next_turn'})
+
+    def update_timer(self, event):
+        self.send_json({'type': 'update_timer'})
+
+    def finish_session(self, event):
+        self.send_json({'type': 'finish_session'})
+
+
+class ProducerConsumer(JsonWebsocketConsumer):
+    def connect(self):
+        self.producer_id = self.scope['url_route']['kwargs']['producer_id']
+        self.group_name = f'producer_{self.producer_id}'
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
         self.accept()
+
+    def disconnect(self, code):
+        self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    def receive_json(self, content, **kwargs):
+        self.send_ws_signal(content['type'])
+
+    def send_ws_signal(self, signal: str):
+        async_to_sync(self.channel_layer.group_send)(
+            self.group_name,
+            {
+                "type": f"{signal}",
+            })
+
+    def update_transactions(self, event):
+        self.send_json({'type': 'update_transactions'})
+
+    def next_phase(self, event):
+        self.send_json({'type': 'next_phase'})
+
+    def next_turn(self, event):
+        self.send_json({'type': 'next_turn'})
+
+    def update_timer(self, event):
+        self.send_json({'type': 'update_timer'})
+
+    def finish_session(self, event):
+        self.send_json({'type': 'finish_session'})
+
+
+class LobbyListConsumer(JsonWebsocketConsumer):
+    """
+    Консумер общего канала
+    """
+
+    def connect(self):
+        """
+        Присоединение к группе 'lobbies'
+        """
+        self.group_name = 'lobbies'
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
+        self.accept()
+        self.send(text_data=json.dumps({
+            'data': LobbySerializer(Session.objects.filter(status='initialized'), many=True).data
+        }))
 
     def disconnect(self, close_code):
         """
         Дисконект
         """
+        self.send(text_data=json.dumps(close_code))
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
             self.channel_name
         )
 
-    def receive(self, text_data):
+    def receive_json(self, content, **kwargs):
         """
         Получает сообщение от клиента
         """
-        text_data_json = json.loads(text_data)
+        async_to_sync(self.send)(
+            self.group_name,
+            {'type': content['type'],
+             'data': content['data']}
+        )
 
+    def update_lobby_list(self, event):
+        """
+        Обновляет список лобби при:
+        1. Создании сессии
+        2. Удалении сессии
+        3. Присоединении игрока к лобби
+        4. Выходе игрока из лобби
+        :param event: сообщение с объектом data из сигнала
+        """
+        self.send(text_data=json.dumps({
+            'data': event['data']
+        }))
+
+
+class LobbyDetailConsumer(JsonWebsocketConsumer):
+    """
+    Консумер отдельного лобби.
+    Отдельные имена каналов (channel_name) по документации хранятся в БД.
+    Думаю, их будет удобно кэшировать в Redis.
+    Либо же брать из роутов WS
+    """
+
+    def connect(self):
+        self.session_id = self.scope['url_route']['kwargs']['session_id']
+        self.group_name = f'lobby_{self.session_id}'
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
+        self.accept()
+
+    def disconnect(self, code):
+        """
+        Отключение от лобби
+        """
+        self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    def receive_json(self, content, **kwargs):
+        """
+        Получает сообщение от клиента
+        """
         # Рассылает всем обновление по вступлению игрока
-        if text_data_json['type'] == 'join_player':
+        if content['type'] == 'update_player_list':
             async_to_sync(self.channel_layer.group_send)(
                 self.group_name,
                 {
-                    'type': 'join_player',
-                    'time': True
-                }
-            )
-        # Рассылает всем обновление о выходе игрока
-        elif text_data_json['type'] == 'exit_player':
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    "type": "exit_player",
-                    'exit_player': True,
+                    'type': 'update_player_list',
+                    'player_count': content['player_count'],
+                    'session_name': content['session_name'],
+                    'data': content['data']
                 }
             )
         # Рассылает всем обновление о старте игры
-        elif text_data_json['type'] == 'start_game':
+        elif content['type'] == 'start_session':
             async_to_sync(self.channel_layer.group_send)(
                 self.group_name,
                 {
-                    "type": "start_game",
-                }
-            )
-        elif text_data_json['type'] == 'update_lobby':
-            async_to_sync(self.channel_layer.group_send)(
-                self.group_name,
-                {
-                    'type': 'update_lobby'
+                    "type": "start_session",
+                    'data': content['data']
                 }
             )
 
-    def join_player(self, event):
+    def update_player_list(self, event):
         """
-        Сигнализирует о присоединении игрока к сессии
+        Обновляет список игроков при
+        1. Присоединении игрока к лобби
+        2. Выходе игрока из лобби по кнопке
         """
         self.send(text_data=json.dumps({
-            'action': 'join_player',
-            'time': True
+            'action': 'update_player_list',
+            'player_count': event['player_count'],
+            'session_name': event['session_name'],
+            'data': event['data']
         }))
 
-    def exit_player(self, event):
+    def start_session(self, event):
         """
-        Сигнализирует о выходе игрока из сессии
-        """
-        self.send(text_data=json.dumps({
-            'action': 'exit_player',
-            'data': True
-        }))
-
-    def start_game(self, event):
-        """
-        Сигнализирует о старте игры
+        Отправляет данные о сессии с информацией игроков на маклерах при старте сессии
         """
         self.send(text_data=json.dumps({
-            'action': 'start_game',
-            'start_game': 'true'
-        }))
-
-    def update_lobby(self, event):
-        """
-        Сигнализирует об обновлении списка лобби
-        """
-        self.send(text_data=json.dumps({
-            'action': 'update_lobby'
+            'action': 'start_session',
+            'data': event['data']
         }))
