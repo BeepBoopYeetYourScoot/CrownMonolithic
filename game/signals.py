@@ -1,6 +1,6 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from game import models
 from game.services.normal.data_access import count_session
@@ -50,25 +50,15 @@ def next_turn(sender, instance=None, created=False, **kwargs):
     """
     Отправляет сигналы на завершение хода или сессии
     """
-    channel_layer = get_channel_layer()
-    active_players = instance.player.filter(status='OK')
-    broker_players = active_players.filter(role='broker')
-    producer_players = active_players.filter(role='producer')
 
     if instance.status == 'active' and instance.current_turn < instance.turn_count:
-        for broker in broker_players:
-            async_to_sync(channel_layer.group_send)(f'broker_{broker.id}', {'type': 'next_turn'})
-        for producer in producer_players:
-            async_to_sync(channel_layer.group_send)(f'producer_{producer.id}', {'type': 'next_turn'})
+        send_signal_to_everybody(instance, 'next_turn')
 
     elif instance.status == 'finished':
-        for broker in broker_players:
-            async_to_sync(channel_layer.group_send)(f'broker_{broker.id}', {'type': 'finish_session'})
-        for producer in producer_players:
-            async_to_sync(channel_layer.group_send)(f'producer_{producer.id}', {'type': 'finish_session'})
+        send_signal_to_everybody(instance, 'finish_session')
 
 
-@receiver(post_save, models.PlayerModel)
+@receiver(post_save, sender=models.PlayerModel)
 def finish_turn_by_players(sender, instance=None, created=False, **kwargs):
     """
     Завершает ход, если все игроки тыкнули "Завершить ход"
@@ -78,3 +68,42 @@ def finish_turn_by_players(sender, instance=None, created=False, **kwargs):
 
     if active_players_count == players_finished_turn_count:
         count_session.count_session(instance.session)
+
+
+def send_signal_to_everybody(session_instance: models.SessionModel, signal_type: str):
+    channel_layer = get_channel_layer()
+    broker_players = session_instance.player.filter(role='broker', status='OK')
+    producer_players = session_instance.player.filter(role='producer', status='OK')
+    for broker in broker_players:
+        async_to_sync(channel_layer.group_send)(f'broker_{broker.id}', {'type': f'{signal_type}'})
+    for producer in producer_players:
+        async_to_sync(channel_layer.group_send)(f'producer_{producer.id}', {'type': f'{signal_type}'})
+
+
+@receiver(post_save, sender=models.PlayerModel)
+def update_player_list(sender, instance=None, created=False, **kwargs):
+    if created:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(f'lobbies', {'type': 'update_lobby_list'})
+        async_to_sync(channel_layer.group_send)(f'lobby_{instance.session_id}', {'type': 'update_player_list'})
+
+
+@receiver(post_delete, sender=models.PlayerModel)
+def update_player_list_delete(sender, instance=None, created=False, **kwargs):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(f'lobbies', {'type': 'update_lobby_list'})
+    async_to_sync(channel_layer.group_send)(f'lobby_{instance.session_id}', {'type': 'update_player_list'})
+
+
+@receiver(post_save, sender=models.SessionModel)
+def start_session(sender, instance=None, created=False, **kwargs):
+    if instance.current_turn == 1 and instance.status == 'started' and instance.turn_phase == 'negotiation':
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(f'lobby_{instance.id}', {'type': 'start_session'})
+        async_to_sync(channel_layer.group_send)(f'lobbies', {'type': 'update_lobby_list'})
+
+
+@receiver(post_delete, sender=models.SessionModel)
+def update_lobby_list_delete(sender, instance=None, created=False, **kwargs):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(f'lobbies', {'type': 'update_lobby_list'})
