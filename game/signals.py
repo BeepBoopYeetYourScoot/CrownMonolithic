@@ -51,8 +51,11 @@ def next_turn(sender, instance=None, created=False, **kwargs):
     Отправляет сигналы на завершение хода или сессии
     """
 
-    if instance.status == 'active' and instance.current_turn < instance.turn_count:
-        send_signal_to_everybody(instance, 'next_turn')
+    if instance.status == 'started' and 1 < instance.current_turn < instance.turn_count:
+        if instance.turn_phase == 'negotiation':
+            send_signal_to_everybody(instance, 'next_turn')
+        elif instance.turn_phase == 'transaction':
+            send_signal_to_everybody(instance, 'next_phase')
 
     elif instance.status == 'finished':
         send_signal_to_everybody(instance, 'finish_session')

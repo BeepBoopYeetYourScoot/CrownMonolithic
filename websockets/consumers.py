@@ -1,6 +1,9 @@
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer, JsonWebsocketConsumer
+from channels.generic.websocket import JsonWebsocketConsumer
 import json
+
+from game import models
+from game.serializers import LobbySerializer
 
 """
 Пример нормально сконструированного Консумера
@@ -96,7 +99,7 @@ class LobbyListConsumer(JsonWebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
         self.accept()
         self.send(text_data=json.dumps({
-            'data': LobbySerializer(Session.objects.filter(status='initialized'), many=True).data
+            'data': LobbySerializer(models.SessionModel.objects.filter(status='initialized'), many=True).data
         }))
 
     def disconnect(self, close_code):
