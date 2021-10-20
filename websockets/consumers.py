@@ -187,18 +187,18 @@ class LobbyDetailConsumer(JsonWebsocketConsumer):
         1. Присоединении игрока к лобби
         2. Выходе игрока из лобби по кнопке
         """
-        self.send(text_data=json.dumps({
+        self.send_json({
             'action': 'update_player_list',
             'player_count': event['player_count'],
             'session_name': event['session_name'],
             'data': event['data']
-        }))
+        })
 
     def start_session(self, event):
         """
         Отправляет данные о сессии с информацией игроков на маклерах при старте сессии
         """
-        self.send(text_data=json.dumps({
+        self.send_json({
             'action': 'start_session',
             'data': event['data']
-        }))
+        })

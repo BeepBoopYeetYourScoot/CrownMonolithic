@@ -72,6 +72,15 @@ class PlayerModel(PlayerBaseModel):
         ('NF', "Неверфол"),
         ('ET', "Этруа")
     )
+
+    STATUSES = (
+        ('OK', 'OK'),
+        ('FIXED', 'Постоянные'),
+        ('VARIABLE', 'Переменные'),
+        ('LOGISTICS', 'Доставка'),
+        ('UNTRUSTED', 'Недобросовестный'),
+        ('STORAGE', 'Хранение')
+    )
     session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, related_name='player')
     nickname = models.CharField(max_length=100, verbose_name='Никнейм')
     role = models.CharField(max_length=20, choices=ROLES, verbose_name='Игровая роль',

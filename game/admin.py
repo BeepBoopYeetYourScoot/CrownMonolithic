@@ -19,13 +19,15 @@ class PlayerAdmin(admin.ModelAdmin):
         "balance",
         "ended_turn",
         "is_bankrupt",
+        "status"
     )
 
     list_filter = (
         'session',
         'role',
         'is_bankrupt',
-        'ended_turn'
+        'ended_turn',
+        'status'
     )
 
     def make_bankrupt(self, request, queryset):
