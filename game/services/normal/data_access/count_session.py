@@ -1,6 +1,7 @@
 import random
 
 from game.models import PlayerModel, TransactionModel, BalanceRequest, TurnTime, SessionModel
+from .timer import find_session_timer
 from ..business_logic.count_turn import count_turn
 from ..business_logic.producer import ProducerNormal
 from ..business_logic.broker import BrokerNormal
@@ -92,6 +93,10 @@ def change_phase(session_instance, phase: str) -> None:
     assert session_instance.pk is not None, 'Session doesn\'t exist'
     assert session_instance.status == 'started'
 
+    timer = find_session_timer(session_instance)
+    if timer:
+        timer.cancel()
+
     session_instance.turn_phase = phase
     session_instance.save()
     [cancel_end_turn(player) for player in session_instance.player.all()]
@@ -106,6 +111,10 @@ def count_session(session_instance: SessionModel) -> None:
     if session_instance.turn_phase == 'negotiation':
         change_phase(session_instance, 'transaction')
         return
+
+    timer = find_session_timer(session_instance)
+    if timer:
+        timer.cancel()
 
     producer_player_models = session_instance.player.filter(role='producer', is_bankrupt=False)
     broker_player_models = session_instance.player.filter(role='broker', is_bankrupt=False)
